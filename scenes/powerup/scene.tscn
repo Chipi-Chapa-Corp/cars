@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://bc3hh0t2vhh5"]
 
-[ext_resource type="Script" uid="uid://dgaahtu2kh1j5" path="res://scenes/cube/script.gd" id="1_0xl45"]
+[ext_resource type="Script" uid="uid://dgaahtu2kh1j5" path="res://scenes/powerup/script.gd" id="1_0xl45"]
 [ext_resource type="PackedScene" uid="uid://b87vy1rght4mu" path="res://components/rigid/scene.tscn" id="1_qogfr"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_qogfr"]

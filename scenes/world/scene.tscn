@@ -1,8 +1,7 @@
 [gd_scene format=3 uid="uid://5syolhhmksjl"]
 
 [ext_resource type="Script" uid="uid://bbfi5lr4o61o5" path="res://scenes/world/script.gd" id="1_rmx8x"]
-[ext_resource type="PackedScene" uid="uid://bc3hh0t2vhh5" path="res://scenes/cube/scene.tscn" id="2_bp46t"]
-[ext_resource type="PackedScene" uid="uid://ckfdqsqdamy0d" path="res://scenes/door/scene.tscn" id="3_0rkgh"]
+[ext_resource type="PackedScene" uid="uid://bc3hh0t2vhh5" path="res://scenes/powerup/scene.tscn" id="2_bp46t"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_th78l"]
 size = Vector2(10, 10)
@@ -44,6 +43,3 @@ spawn_path = NodePath("..")
 
 [node name="Cube" parent="Items" unique_id=1339066188 instance=ExtResource("2_bp46t")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2.6575027)
-
-[node name="Door" parent="Items" unique_id=693704059 instance=ExtResource("3_0rkgh")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.555894, 0, -2.7928457)
