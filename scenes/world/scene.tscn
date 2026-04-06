@@ -1,0 +1,49 @@
+[gd_scene format=3 uid="uid://5syolhhmksjl"]
+
+[ext_resource type="Script" uid="uid://bbfi5lr4o61o5" path="res://scenes/world/script.gd" id="1_rmx8x"]
+[ext_resource type="PackedScene" uid="uid://bc3hh0t2vhh5" path="res://scenes/cube/scene.tscn" id="2_bp46t"]
+[ext_resource type="PackedScene" uid="uid://ckfdqsqdamy0d" path="res://scenes/door/scene.tscn" id="3_0rkgh"]
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_th78l"]
+size = Vector2(10, 10)
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_th78l"]
+points = PackedVector3Array(-5, 0, -5, -5, 0, 5, 5, 0, -5, 5, 0, 5)
+
+[node name="World" type="Node3D" unique_id=1348487105 node_paths=PackedStringArray("player_container", "player_spawner")]
+script = ExtResource("1_rmx8x")
+player_container = NodePath("Players")
+player_spawner = NodePath("Players/Spawner")
+
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=1316972284]
+transform = Transform3D(-0.6493247, -0.37542072, 0.66139, 0.006817406, 0.8667567, 0.49868473, -0.76048076, 0.32831728, -0.56024706, 4.871155, 2.4852488, -4.9991665)
+light_angular_distance = 0.5
+shadow_enabled = true
+directional_shadow_blend_splits = true
+
+[node name="Sun" type="DirectionalLight3D" parent="Sun" unique_id=1699821743]
+transform = Transform3D(-0.89151204, -0.30364907, -0.3361604, -0.45130748, 0.65939707, 0.60126287, 0.039090097, 0.6877447, -0.7248994, -1.2880962, 6.4593663, -11.822325)
+light_angular_distance = 0.5
+shadow_enabled = true
+directional_shadow_blend_splits = true
+
+[node name="Floor" type="StaticBody3D" parent="." unique_id=1797554357]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Floor" unique_id=1198732282]
+mesh = SubResource("PlaneMesh_th78l")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor" unique_id=144680472]
+shape = SubResource("ConvexPolygonShape3D_th78l")
+
+[node name="Players" type="Node3D" parent="." unique_id=909791636]
+
+[node name="Spawner" type="MultiplayerSpawner" parent="Players" unique_id=942252448]
+spawn_path = NodePath("..")
+
+[node name="Items" type="Node3D" parent="." unique_id=1035168473]
+
+[node name="Cube" parent="Items" unique_id=1339066188 instance=ExtResource("2_bp46t")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2.6575027)
+
+[node name="Door" parent="Items" unique_id=693704059 instance=ExtResource("3_0rkgh")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.555894, 0, -2.7928457)

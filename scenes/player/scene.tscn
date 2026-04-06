@@ -1,0 +1,51 @@
+[gd_scene format=3 uid="uid://dti5m6wc42ubs"]
+
+[ext_resource type="Script" uid="uid://dwxj6coecxokf" path="res://scenes/player/script.gd" id="1_xvkdw"]
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_3u2kf"]
+radius = 0.1
+height = 0.5
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_3u2kf"]
+radius = 0.1
+height = 0.5
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_xvkdw"]
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_xvkdw"]
+properties/0/path = NodePath(".:position")
+properties/0/spawn = true
+properties/0/replication_mode = 1
+
+[node name="Player" type="CharacterBody3D" unique_id=13862576 node_paths=PackedStringArray("name_label", "camera") groups=["player"]]
+script = ExtResource("1_xvkdw")
+name_label = NodePath("Label3D")
+camera = NodePath("Camera")
+
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1471058107]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.25, 0)
+mesh = SubResource("CapsuleMesh_3u2kf")
+
+[node name="Collision" type="CollisionShape3D" parent="." unique_id=1459105168]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.25, 0)
+shape = SubResource("CapsuleShape3D_3u2kf")
+
+[node name="Camera" type="Camera3D" parent="." unique_id=1939469741]
+transform = Transform3D(1, 0, 0, 0, 0.86308724, 0.50505495, 0, -0.50505495, 0.86308724, 0, 1.3493773, 1.076988)
+
+[node name="Label3D" type="Label3D" parent="." unique_id=1133668547]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6447773, 0)
+billboard = 1
+text = "Name"
+font_size = 24
+
+[node name="Area3D" type="Area3D" parent="." unique_id=1292610372]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Area3D" unique_id=1814024232]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2520549, 0)
+shape = SubResource("SphereShape3D_xvkdw")
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." unique_id=1139274811]
+replication_config = SubResource("SceneReplicationConfig_xvkdw")
+
+[connection signal="body_entered" from="Area3D" to="." method="_on_interaction_available"]

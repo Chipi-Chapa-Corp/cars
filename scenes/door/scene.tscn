@@ -1,0 +1,28 @@
+[gd_scene format=3 uid="uid://ckfdqsqdamy0d"]
+
+[ext_resource type="Script" uid="uid://qgig2vjdvywq" path="res://scenes/door/script.gd" id="1_n7fy7"]
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_paywd"]
+points = PackedVector3Array(0.26587301, 0.50793654, 0.030543126, -0.25793654, -0.50793654, -0.03292408, -0.25793654, -0.50793654, 0.030543126, -0.25793654, 0.50793654, -0.03292408, 0.26587301, -0.50793654, -0.03292408, 0.26587301, -0.50793654, 0.030543126, -0.25793654, 0.50793654, 0.030543126, 0.26587301, 0.50793654, -0.03292408)
+
+[sub_resource type="BoxMesh" id="BoxMesh_paywd"]
+size = Vector3(0.5, 1, 0.05)
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_kl046"]
+properties/0/path = NodePath(".:target_rotation_y")
+properties/0/spawn = true
+properties/0/replication_mode = 2
+
+[node name="Door" type="StaticBody3D" unique_id=161597493 groups=["interactable"]]
+script = ExtResource("1_n7fy7")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1230275202]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.25, 0.5, 0)
+shape = SubResource("ConvexPolygonShape3D_paywd")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=378483984]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.25, 0.5, 0)
+mesh = SubResource("BoxMesh_paywd")
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." unique_id=1653189745]
+replication_config = SubResource("SceneReplicationConfig_kl046")

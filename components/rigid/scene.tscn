@@ -1,0 +1,11 @@
+[gd_scene format=3 uid="uid://b87vy1rght4mu"]
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_qogfr"]
+properties/0/path = NodePath(".:position")
+properties/0/spawn = true
+properties/0/replication_mode = 1
+
+[node name="Item" type="RigidBody3D" unique_id=1339066188 groups=["interactable"]]
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." unique_id=1387037048]
+replication_config = SubResource("SceneReplicationConfig_qogfr")

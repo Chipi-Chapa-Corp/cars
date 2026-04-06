@@ -1,0 +1,43 @@
+[gd_scene format=3 uid="uid://7diwfasegod"]
+
+[ext_resource type="Script" uid="uid://dspgghkfi6sd" path="res://scenes/main-menu/script.gd" id="1_3jxos"]
+[ext_resource type="PackedScene" uid="uid://5syolhhmksjl" path="res://scenes/world/scene.tscn" id="2_m1jbe"]
+
+[node name="Main Menu" type="Control" unique_id=1687610568 node_paths=PackedStringArray("lobbies", "refresh_timer")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_3jxos")
+world_scene = ExtResource("2_m1jbe")
+lobbies = NodePath("CenterContainer/VBoxContainer/Lobbies Container")
+refresh_timer = NodePath("Lobbies Refresh Timer")
+
+[node name="CenterContainer" type="CenterContainer" parent="." unique_id=1190608247]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer" unique_id=1222023516]
+layout_mode = 2
+
+[node name="Host" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1428105549]
+layout_mode = 2
+text = "Host"
+
+[node name="Label" type="Label" parent="CenterContainer/VBoxContainer" unique_id=682505652]
+layout_mode = 2
+text = "Lobbies:"
+
+[node name="Lobbies Container" type="VBoxContainer" parent="CenterContainer/VBoxContainer" unique_id=409026675]
+layout_mode = 2
+
+[node name="Lobbies Refresh Timer" type="Timer" parent="." unique_id=1147088935]
+autostart = true
+
+[connection signal="pressed" from="CenterContainer/VBoxContainer/Host" to="." method="_on_host_pressed"]
