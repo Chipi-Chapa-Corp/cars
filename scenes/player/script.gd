@@ -86,13 +86,12 @@ func _physics_process(delta: float) -> void:
 
 	var speed_ratio := clampf(absf(forward_speed) / scaled_max_forward_speed, 0.0, 1.0)
 	if steering != 0.0:
-		var steering_strength := 0.3 + 0.7 * speed_ratio
 		var steer_direction := 1.0
 		if forward_speed < -0.05:
 			steer_direction = -1.0
 		elif absf(forward_speed) <= 0.05 and throttle < 0.0:
 			steer_direction = -1.0
-		rotate_y(-steering * steer_direction * scaled_turn_speed * steering_strength * delta)
+		rotate_y(-steering * steer_direction * scaled_turn_speed * delta)
 
 	var drift_ratio := clampf((speed_ratio - DRIFT_START_SPEED_RATIO) / (1.0 - DRIFT_START_SPEED_RATIO), 0.0, 1.0)
 	var active_drift := drift_ratio * absf(steering)
