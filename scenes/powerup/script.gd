@@ -1,10 +1,17 @@
 extends RigidBase
 
+@export var type: String = "bullet"
+
 func _init():
 	super (1000)
 
 func do_interact(payload: Dictionary) -> void:
-	print("Interacting with cube", payload)
-	if cooldown.fire():
-		if multiplayer.is_server():
-			position.y += 5
+	var caller := payload.get("caller") as CharacterBody3D
+	if caller == null:
+		return
+
+	if caller.powerup != "":
+		return
+
+	caller.powerup = type
+	queue_free()

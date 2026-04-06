@@ -9,6 +9,10 @@ const JUMP_VELOCITY := 2.5
 var player_id: int = -1
 var _is_local := false
 
+@export var powerup: String = "":
+	set(value):
+		powerup = value
+		name_label.text = "%s (%s)" % [str(player_id), value]
 
 func prepare(data: Dictionary):
 	player_id = int(data["peer_id"])
@@ -53,5 +57,5 @@ func _on_interaction_available(body: Node3D) -> void:
 	if not _is_local:
 		return
 
-	if body.is_in_group("interactable"):
+	if body.is_in_group("pickupable"):
 		body.interact({})

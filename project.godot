@@ -24,6 +24,7 @@ NetworkManager="*uid://dypv2dgyr3y2l"
 
 interactable=""
 player=""
+pickupable="Items which can be picked up"
 
 [physics]
 
