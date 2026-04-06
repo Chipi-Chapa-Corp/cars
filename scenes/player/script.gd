@@ -9,7 +9,7 @@ const MAX_REVERSE_SPEED := 10.0
 const ACCELERATION := 28.0
 const BRAKE_DECELERATION := 50.0
 const COAST_DECELERATION := 50.0
-const TURN_SPEED := 5.0
+const TURN_SPEED := 10.0
 
 const LATERAL_GRIP := 18.0
 const DRIFT_GRIP := 6.0
