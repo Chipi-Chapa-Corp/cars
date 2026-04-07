@@ -5,12 +5,20 @@ const THROTTLE_FORCE := 100.0
 const IDLE_TURN_SPEED := 1.8
 const IDLE_TURN_SPEED_THRESHOLD := 0.8
 const IDLE_TURN_DAMPING := 8.0
+const CAR_TYPES := ["speedster", "retro"]
 
 @onready var camera: Camera3D = $Camera
 
 @export var name_plate: Label3D
 
 @export var hitpoints: int = 100
+
+var _car_type: String = "speedster"
+@export_enum("speedster", "retro") var car_type: String = "speedster":
+	get:
+		return _car_type
+	set(value):
+		_set_car_type(value)
 
 var player_id: int = -1
 var player_name: String = ""
@@ -26,6 +34,10 @@ func prepare(data: Dictionary) -> void:
 
 func _ready() -> void:
 	_is_local = multiplayer.get_unique_id() == player_id
+	if is_multiplayer_authority():
+		car_type = CAR_TYPES.pick_random()
+	else:
+		_set_car_type(car_type)
 	camera.current = _is_local
 	_sync_label()
 	set_physics_process(_is_local)
@@ -55,3 +67,16 @@ func _sync_label() -> void:
 		name_plate.text = ""
 		return
 	name_plate.text = "%s (%s)" % [player_name, powerup] if powerup else player_name
+
+func _set_car_type(value: String) -> void:
+	_car_type = value
+
+	for type_name: String in CAR_TYPES:
+		var is_selected: bool = type_name == value
+		for node: Node in get_tree().get_nodes_in_group("%s-car" % type_name):
+			if node == self or not is_ancestor_of(node):
+				continue
+			if node is Node3D:
+				node.visible = is_selected
+			if node is CollisionShape3D:
+				node.disabled = not is_selected
