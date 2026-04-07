@@ -24,7 +24,13 @@ var player_id: int = -1
 var player_name: String = ""
 var _is_local := false
 
-var powerup: String = ""
+var _powerup: String = ""
+@export var powerup: String = "":
+	set(value):
+		_powerup = value
+		_sync_label()
+	get:
+		return _powerup
 
 func prepare(data: Dictionary) -> void:
 	player_id = int(data["peer_id"])
@@ -63,6 +69,8 @@ func _on_interaction_available(body: Node3D) -> void:
 		body.interact({})
 
 func _sync_label() -> void:
+	if name_plate == null:
+		return
 	if _is_local:
 		name_plate.text = ""
 		return
