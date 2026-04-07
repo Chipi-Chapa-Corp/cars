@@ -8,20 +8,26 @@ const IDLE_TURN_DAMPING := 8.0
 
 @onready var camera: Camera3D = $Camera
 
+@export var name_plate: Label3D
+
+@export var hitpoints: int = 100
+
 var player_id: int = -1
+var player_name: String = ""
 var _is_local := false
 
 var powerup: String = ""
 
 func prepare(data: Dictionary) -> void:
 	player_id = int(data["peer_id"])
+	player_name = str(player_id)
 	set_multiplayer_authority(player_id)
-	name = str(player_id)
 
 
 func _ready() -> void:
 	_is_local = multiplayer.get_unique_id() == player_id
 	camera.current = _is_local
+	_sync_label()
 	set_physics_process(_is_local)
 
 func _physics_process(delta: float) -> void:
@@ -43,3 +49,9 @@ func _physics_process(delta: float) -> void:
 func _on_interaction_available(body: Node3D) -> void:
 	if _is_local and body.is_in_group("pickupable"):
 		body.interact({})
+
+func _sync_label() -> void:
+	if _is_local:
+		name_plate.text = ""
+		return
+	name_plate.text = "%s (%s)" % [player_name, powerup] if powerup else player_name
