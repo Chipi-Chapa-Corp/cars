@@ -34,7 +34,7 @@ func _execute_interaction(payload: Dictionary) -> void:
 	runtime_payload["caller"] = _resolve_sender_node(int(payload.get("peer_id", -1)))
 	do_interact(runtime_payload)
 
-func _resolve_sender_node(sender_id: int) -> CharacterBody3D:
+func _resolve_sender_node(sender_id: int) -> Node3D:
 	var players := get_tree().get_nodes_in_group("player")
 	var index = players.find_custom(func(node): return node.player_id == sender_id)
 	return null if index == -1 else players[index]
