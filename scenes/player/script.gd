@@ -17,8 +17,15 @@ const WHEEL_GROUPS := [
 @onready var camera: Camera3D = $Camera
 
 @export var name_plate: Label3D
+@export var healthbar: TextureProgressBar
 
-@export var hitpoints: int = 100
+var _hitpoints: int = 100
+@export var hitpoints: int = 100:
+	set(value):
+		_hitpoints = maxi(0, value)
+		_sync_healthbar()
+	get:
+		return _hitpoints
 
 var _car_type: String = "speedster"
 @export_enum("speedster", "retro") var car_type: String = "speedster":
@@ -67,6 +74,7 @@ func _ready() -> void:
 		_set_car_type(car_type)
 	camera.current = _is_local
 	_sync_label()
+	_sync_healthbar()
 	set_physics_process(_is_local)
 	set_process(not _is_local)
 	if not _is_local:
@@ -105,6 +113,11 @@ func _sync_label() -> void:
 		name_plate.text = ""
 		return
 	name_plate.text = "%s (%s)" % [player_name, powerup] if powerup else player_name
+
+func _sync_healthbar() -> void:
+	if healthbar == null:
+		return
+	healthbar.value = clampf(float(hitpoints), healthbar.min_value, healthbar.max_value)
 
 func _set_car_type(value: String) -> void:
 	_car_type = value
