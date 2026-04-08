@@ -2,8 +2,9 @@
 
 [ext_resource type="Script" uid="uid://dwxj6coecxokf" path="res://scenes/player/script.gd" id="1_xvkdw"]
 [ext_resource type="ArrayMesh" uid="uid://dlci3s8pxvqr1" path="res://assets/cars/vehicle-vintage-racer.obj" id="2_e4tch"]
-[ext_resource type="Texture2D" uid="uid://bxt38sqtwkh18" path="res://icon.svg" id="3_ak5du"]
+[ext_resource type="Texture2D" uid="uid://do6egtql1dxan" path="res://assets/hud/hp_bg.png" id="2_go6ih"]
 [ext_resource type="ArrayMesh" uid="uid://cq2k8l8340q1l" path="res://assets/cars/vehicle-speedster.obj" id="3_e8u37"]
+[ext_resource type="Texture2D" uid="uid://df1e01cr4qhth" path="res://assets/hud/hp.png" id="3_l3ro8"]
 [ext_resource type="ArrayMesh" uid="uid://ct62oxmcg7cls" path="res://assets/cars/wheel-small.obj" id="4_e8u37"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_e4tch"]
@@ -23,9 +24,15 @@ properties/2/replication_mode = 2
 properties/3/path = NodePath(".:car_type")
 properties/3/spawn = true
 properties/3/replication_mode = 2
+properties/4/path = NodePath(".:synced_wheel_steering")
+properties/4/spawn = true
+properties/4/replication_mode = 1
+properties/5/path = NodePath(".:synced_wheel_spin")
+properties/5/spawn = true
+properties/5/replication_mode = 1
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_ak5du"]
-viewport_path = NodePath("Hud")
+viewport_path = NodePath("Node/HUD")
 
 [sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_itrdm"]
 points = PackedVector3Array(0.25, 0.12499021, 0.12496328, 0.19998044, 0.26543903, -0.050019562, 0.23164645, 0.16918558, 0.12496328, 0.09372553, 0.21872553, 0.4375, 0.25, 0.0625, 0.12496328, 0.25, 0.12499021, -0.12504894, 0.19998044, 0.26543903, -0.100039154, 0.09999022, 0.325, -0.100039154, 0.07498044, 0.23748286, 0.4375, 0.09372553, 0.08747553, 0.4375, -0.25, 0.0625, 0.12496328, 0.25, 0.0625, -0.12504894, 0.17497063, 0.18748042, -0.37506118, 0.125, 0.23748286, -0.37506118, 0.09999022, 0.26248407, -0.37506118, 0.07498044, 0.325, -0.12504894, -0.100039154, 0.325, -0.100039154, -0.07502936, 0.23748286, 0.4375, -0.09377447, 0.08747553, 0.4375, -0.25, 0.12499021, 0.12496328, -0.25, 0.0625, -0.12504894, 0.17497063, 0.0625, -0.37506118, 0.15666601, 0.18748042, -0.41925657, 0.11247063, 0.18748042, -0.4375, -0.100039154, 0.26248407, -0.37506118, -0.07502936, 0.325, -0.12504894, -0.20002937, 0.26248407, -0.100039154, -0.20002937, 0.26248407, -0.050019562, -0.09377447, 0.21872553, 0.4375, -0.23169538, 0.16918558, 0.12496328, -0.25, 0.12499021, -0.12504894, -0.17501958, 0.0625, -0.37506118, 0.15666601, 0.0625, -0.41925657, 0.11247063, 0.0625, -0.4375, -0.11251958, 0.18748042, -0.4375, -0.15671495, 0.18748042, -0.41925657, -0.17501958, 0.18748042, -0.37506118, -0.15671495, 0.0625, -0.41925657, -0.11251958, 0.0625, -0.4375)
@@ -60,13 +67,7 @@ points = PackedVector3Array(-0.042411763, -0.022637758, -0.117044546, 0.03749418
 [node name="Player" type="VehicleBody3D" unique_id=174486200 node_paths=PackedStringArray("name_plate") groups=["player"]]
 center_of_mass_mode = 1
 script = ExtResource("1_xvkdw")
-name_plate = NodePath("Name")
-
-[node name="Name" type="Label3D" parent="." unique_id=1133668547]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6447773, 0)
-billboard = 1
-text = "Name"
-font_size = 24
+name_plate = NodePath("Node/Name")
 
 [node name="Camera" type="Camera3D" parent="." unique_id=1939469741]
 transform = Transform3D(-1, 8.742278e-08, 0, 7.5710346e-08, 0.8660254, 0.50000006, 4.3711392e-08, 0.50000006, -0.8660254, 0, 1.349, -1.3768253)
@@ -103,22 +104,30 @@ wheel_radius = 0.1
 [node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." unique_id=1139274811]
 replication_config = SubResource("SceneReplicationConfig_xvkdw")
 
-[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=1505645248]
+[node name="Node" type="Node3D" parent="." unique_id=689486154]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2737025, 0)
 
-[node name="Sprite3D" type="Sprite3D" parent="." unique_id=1355378924]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.814767, 0)
+[node name="HUD 3D" type="Sprite3D" parent="Node" unique_id=1355378924]
+transform = Transform3D(0.135, 0, 0, 0, 0.135, 0, 0, 0, 0.135, 0, 0.45336914, 0)
 billboard = 1
 texture = SubResource("ViewportTexture_ak5du")
 
-[node name="Hud" type="SubViewport" parent="." unique_id=1071415259]
+[node name="HUD" type="SubViewport" parent="Node" unique_id=1071415259]
 transparent_bg = true
-size = Vector2i(100, 10)
+size = Vector2i(512, 140)
 
-[node name="TextureProgressBar" type="TextureProgressBar" parent="Hud" unique_id=1976256746]
+[node name="TextureProgressBar" type="TextureProgressBar" parent="Node/HUD" unique_id=1976256746]
 offset_right = 40.0
 offset_bottom = 40.0
-value = 100.0
-texture_progress = ExtResource("3_ak5du")
+value = 45.0
+texture_under = ExtResource("2_go6ih")
+texture_progress = ExtResource("3_l3ro8")
+
+[node name="Name" type="Label3D" parent="Node" unique_id=1133668547]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6447773, 0)
+billboard = 1
+text = "Name"
+font_size = 24
 
 [node name="Retro" type="Node" parent="." unique_id=1884855771]
 
@@ -130,7 +139,7 @@ mesh = ExtResource("2_e4tch")
 visible = false
 shape = SubResource("ConvexPolygonShape3D_itrdm")
 
-[node name="RearRight2" type="MeshInstance3D" parent="." unique_id=1099970830 groups=["retro-car"]]
+[node name="RearRight2" type="MeshInstance3D" parent="." unique_id=1099970830 groups=["retro-car", "wheel-left-front"]]
 transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0.2, 0.125, 0.25)
 visible = false
 mesh = ExtResource("4_e8u37")
@@ -140,7 +149,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0.125, 0.25)
 visible = false
 shape = SubResource("ConvexPolygonShape3D_go6ih")
 
-[node name="RearLeft2" type="MeshInstance3D" parent="." unique_id=495888135 groups=["retro-car"]]
+[node name="RearLeft2" type="MeshInstance3D" parent="." unique_id=495888135 groups=["retro-car", "wheel-right-front"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.2, 0.125, 0.25)
 visible = false
 mesh = ExtResource("4_e8u37")
@@ -150,7 +159,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.2, 0.125, 0.25)
 visible = false
 shape = SubResource("ConvexPolygonShape3D_l3ro8")
 
-[node name="FrontRight2" type="MeshInstance3D" parent="." unique_id=1390100104 groups=["retro-car"]]
+[node name="FrontRight2" type="MeshInstance3D" parent="." unique_id=1390100104 groups=["retro-car", "wheel-left-rear"]]
 transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0.2, 0.125, -0.25)
 visible = false
 mesh = ExtResource("4_e8u37")
@@ -160,7 +169,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0.125, -0.25)
 visible = false
 shape = SubResource("ConvexPolygonShape3D_0niji")
 
-[node name="FrontLeft2" type="MeshInstance3D" parent="." unique_id=924099834 groups=["retro-car"]]
+[node name="FrontLeft2" type="MeshInstance3D" parent="." unique_id=924099834 groups=["retro-car", "wheel-right-rear"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.2, 0.125, -0.25)
 visible = false
 mesh = ExtResource("4_e8u37")
@@ -180,7 +189,7 @@ mesh = ExtResource("3_e8u37")
 transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, 0, 0.063)
 shape = SubResource("ConvexPolygonShape3D_euyhv")
 
-[node name="RearRight3" type="MeshInstance3D" parent="." unique_id=839442686 groups=["speedster-car"]]
+[node name="RearRight3" type="MeshInstance3D" parent="." unique_id=839442686 groups=["speedster-car", "wheel-left-front"]]
 transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0.2, 0.125, 0.25)
 mesh = ExtResource("4_e8u37")
 
@@ -188,7 +197,7 @@ mesh = ExtResource("4_e8u37")
 transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0.2, 0.125, 0.25)
 shape = SubResource("ConvexPolygonShape3D_2hgy8")
 
-[node name="RearLeft3" type="MeshInstance3D" parent="." unique_id=2015591058 groups=["speedster-car"]]
+[node name="RearLeft3" type="MeshInstance3D" parent="." unique_id=2015591058 groups=["speedster-car", "wheel-right-front"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.2, 0.125, 0.25)
 mesh = ExtResource("4_e8u37")
 
