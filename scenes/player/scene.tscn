@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://dwxj6coecxokf" path="res://scenes/player/script.gd" id="1_xvkdw"]
 [ext_resource type="ArrayMesh" uid="uid://dlci3s8pxvqr1" path="res://assets/cars/vehicle-vintage-racer.obj" id="2_e4tch"]
 [ext_resource type="Texture2D" uid="uid://do6egtql1dxan" path="res://assets/hud/hp_bg.png" id="2_go6ih"]
+[ext_resource type="PackedScene" uid="uid://c1jbwh18arb80" path="res://scenes/powerups/gun.tscn" id="2_l3ro8"]
 [ext_resource type="ArrayMesh" uid="uid://cq2k8l8340q1l" path="res://assets/cars/vehicle-speedster.obj" id="3_e8u37"]
 [ext_resource type="Texture2D" uid="uid://df1e01cr4qhth" path="res://assets/hud/hp.png" id="3_l3ro8"]
 [ext_resource type="ArrayMesh" uid="uid://ct62oxmcg7cls" path="res://assets/cars/wheel-small.obj" id="4_e8u37"]
@@ -64,11 +65,15 @@ points = PackedVector3Array(-0.042411763, -0.022637758, -0.117044546, 0.03749418
 [sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_8k1dt"]
 points = PackedVector3Array(-0.042411763, -0.022637758, -0.117044546, 0.037494183, 0.01535818, 0.12296172, -0.038890474, 0.015185972, 0.12158298, 0.037494183, 0.12296172, -0.01535818, 0.04054308, -0.11678875, -0.03389423, -0.038638916, -0.10948665, 0.056623682, -0.06143687, 0.09837868, -0.018917155, 0.0625, 0.0074502802, -0.0969237, 0.0625, -0.04846185, 0.08573661, -0.06143687, -0.09837868, -0.018917155, -0.038615108, 0.064130224, -0.10563878, -0.03861601, 0.105641186, 0.06413169, 0.0625, 0.08573661, 0.04846185, -0.061436377, -0.018917006, 0.098377906, 0.037095707, -0.07980973, 0.095000245, 0.037095707, -0.07980973, -0.095000245, 0.03725345, 0.038166136, -0.11832458, -0.038638916, -0.10948665, -0.056623682, -0.061436377, -0.018917006, -0.098377906, 0.0625, -0.0969237, -0.0074502802, 0.037095707, 0.095000245, 0.07980973, -0.038639653, -0.056624737, 0.10948868, 0.037161645, 0.106599376, -0.06471338, -0.03869095, 0.1171854, -0.037798688, 0.03725345, -0.11832458, 0.038166136, 0.0625, 0.08573661, -0.04846185, -0.06088216, 0.06750135, 0.07499628, -0.038890798, -0.12158397, -0.015186096, -0.038615108, 0.064130224, 0.10563878, 0.037494183, -0.01535818, -0.12296172, -0.038615108, -0.064130224, -0.10563878, 0.0625, -0.063362405, -0.07454951)
 
-[node name="Player" type="VehicleBody3D" unique_id=174486200 node_paths=PackedStringArray("name_plate", "healthbar") groups=["player"]]
+[node name="Player" type="VehicleBody3D" unique_id=174486200 node_paths=PackedStringArray("name_plate", "healthbar", "powerup_slot") groups=["player"]]
 center_of_mass_mode = 1
 script = ExtResource("1_xvkdw")
 name_plate = NodePath("Visual/Name")
 healthbar = NodePath("Visual/HUD/TextureProgressBar")
+powerup_slot = NodePath("Visual/PowerupSlot")
+powerup_scene_by_type = Dictionary[String, PackedScene]({
+"gun": ExtResource("2_l3ro8")
+})
 
 [node name="Camera" type="Camera3D" parent="." unique_id=1939469741]
 transform = Transform3D(-1, 8.742278e-08, 0, 7.5710346e-08, 0.8660254, 0.50000006, 4.3711392e-08, 0.50000006, -0.8660254, 0, 1.349, -1.3768253)
@@ -129,6 +134,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6447773, 0)
 billboard = 1
 text = "Name"
 font_size = 24
+
+[node name="PowerupSlot" type="Node3D" parent="Visual" unique_id=464308254]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
 
 [node name="Retro" type="Node" parent="." unique_id=1884855771]
 

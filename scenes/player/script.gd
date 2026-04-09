@@ -18,6 +18,8 @@ const WHEEL_GROUPS := [
 
 @export var name_plate: Label3D
 @export var healthbar: TextureProgressBar
+@export var powerup_slot: Node3D
+@export var powerup_scene_by_type: Dictionary[String, PackedScene] = {}
 
 var _hitpoints: int = 100
 @export var hitpoints: int = 100:
@@ -44,6 +46,7 @@ var _wheel_nodes: Dictionary = {}
 var _wheel_base_rotation: Dictionary = {}
 var _wheel_spin: Dictionary = {}
 var _visual_steering := 0.0
+var _powerup_scene_instance: Node
 
 @onready var _physics_wheels: Dictionary = {
 	"wheel-left-front": $FrontLeft as VehicleWheel3D,
@@ -57,6 +60,7 @@ var _powerup: String = ""
 	set(value):
 		_powerup = value
 		_sync_label()
+		_sync_powerup_scene()
 	get:
 		return _powerup
 
@@ -74,6 +78,7 @@ func _ready() -> void:
 		_set_car_type(car_type)
 	camera.current = _is_local
 	_sync_label()
+	_sync_powerup_scene()
 	_sync_healthbar()
 	set_physics_process(_is_local)
 	set_process(not _is_local)
@@ -113,6 +118,20 @@ func _sync_label() -> void:
 		name_plate.text = ""
 		return
 	name_plate.text = "%s (%s)" % [player_name, powerup] if powerup else player_name
+
+func _sync_powerup_scene() -> void:
+	_clear_powerup_scene()
+	if _powerup == "":
+		return
+	var scene := powerup_scene_by_type.get(_powerup, null) as PackedScene
+	_powerup_scene_instance = scene.instantiate()
+	powerup_slot.add_child(_powerup_scene_instance)
+
+func _clear_powerup_scene() -> void:
+	if _powerup_scene_instance == null:
+		return
+	_powerup_scene_instance.queue_free()
+	_powerup_scene_instance = null
 
 func _sync_healthbar() -> void:
 	if healthbar == null:

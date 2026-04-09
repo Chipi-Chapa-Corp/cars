@@ -1,0 +1,61 @@
+[gd_scene format=3 uid="uid://cyn6fh0glclp7"]
+
+[ext_resource type="Script" uid="uid://udyevhsg8j0t" path="res://scenes/pickup/script.gd" id="1_0xl45"]
+[ext_resource type="ArrayMesh" uid="uid://cre3ai8e482u7" path="res://assets/weapons/blaster-o.obj" id="1_8ieov"]
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_aap3v"]
+radius = 0.3938032
+
+[sub_resource type="Animation" id="Animation_reset"]
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Visual Slot:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector3(0, 0, 0), Vector3(0, 6.2831855, 0)]
+}
+
+[sub_resource type="Animation" id="Animation_spin"]
+resource_name = "spin"
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Visual Slot:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector3(0, 0, 0), Vector3(0, 6.2831855, 0)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_pickup"]
+_data = {
+&"RESET": SubResource("Animation_reset"),
+&"spin": SubResource("Animation_spin")
+}
+
+[node name="Pickup" type="StaticBody3D" unique_id=1005584549 node_paths=PackedStringArray("_animation_player", "_visual_slot") groups=["interactable", "pickupable"]]
+script = ExtResource("1_0xl45")
+_animation_player = NodePath("AnimationPlayer")
+_visual_slot = NodePath("Visual Slot")
+_mesh_by_type = Dictionary[String, Mesh]({
+"gun": ExtResource("1_8ieov")
+})
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1070234995]
+shape = SubResource("SphereShape3D_aap3v")
+
+[node name="Visual Slot" type="Node3D" parent="." unique_id=561143259]
+transform = Transform3D(0.99999994, 0, 0, 0, 1, 0, 0, 0, 0.99999994, 0, 0.2, 0)
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1426988184]
+libraries/ = SubResource("AnimationLibrary_pickup")
