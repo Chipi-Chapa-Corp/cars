@@ -120,6 +120,9 @@ func _physics_process(delta: float) -> void:
 		_idle_turn_elapsed = 0.0
 		_idle_turn_direction = 0.0
 
+	if Input.is_action_just_pressed("activate"):
+		_activate_powerup()
+
 func _process(_delta: float) -> void:
 	if not _is_local:
 		_apply_synced_wheel_visuals()
@@ -128,6 +131,15 @@ func _process(_delta: float) -> void:
 func _on_interaction_available(body: Node3D) -> void:
 	if _is_local and _powerup == "" and body.is_in_group("pickupable"):
 		body.interact({})
+
+func _activate_powerup() -> void:
+	if _powerup_scene_instance == null:
+		return
+	var cleanup = _powerup_scene_instance.will_dispose
+	_powerup_scene_instance.interact({})
+	if cleanup:
+		_powerup_scene_instance = null
+		powerup = ""
 
 func _sync_label() -> void:
 	if name_plate == null:

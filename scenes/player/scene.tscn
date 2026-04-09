@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://dwxj6coecxokf" path="res://scenes/player/script.gd" id="1_xvkdw"]
 [ext_resource type="ArrayMesh" uid="uid://dlci3s8pxvqr1" path="res://assets/cars/vehicle-vintage-racer.obj" id="2_e4tch"]
 [ext_resource type="Texture2D" uid="uid://do6egtql1dxan" path="res://assets/hud/hp_bg.png" id="2_go6ih"]
-[ext_resource type="PackedScene" uid="uid://c1jbwh18arb80" path="res://scenes/powerups/gun.tscn" id="2_l3ro8"]
+[ext_resource type="PackedScene" uid="uid://c1jbwh18arb80" path="res://scenes/powerups/gun/scene.tscn" id="2_l3ro8"]
 [ext_resource type="ArrayMesh" uid="uid://cq2k8l8340q1l" path="res://assets/cars/vehicle-speedster.obj" id="3_e8u37"]
 [ext_resource type="Texture2D" uid="uid://df1e01cr4qhth" path="res://assets/hud/hp.png" id="3_l3ro8"]
 [ext_resource type="ArrayMesh" uid="uid://ct62oxmcg7cls" path="res://assets/cars/wheel-small.obj" id="4_e8u37"]

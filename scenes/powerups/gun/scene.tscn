@@ -1,0 +1,11 @@
+[gd_scene format=3 uid="uid://c1jbwh18arb80"]
+
+[ext_resource type="Script" uid="uid://rgds24h5ithf" path="res://scenes/powerups/gun/script.gd" id="1_3fv2y"]
+[ext_resource type="ArrayMesh" uid="uid://cre3ai8e482u7" path="res://assets/weapons/blaster-o.obj" id="1_cq54o"]
+
+[node name="Gun" type="Node3D" unique_id=465152565]
+script = ExtResource("1_3fv2y")
+
+[node name="BlasterO" type="MeshInstance3D" parent="." unique_id=29212809]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, 0, 0)
+mesh = ExtResource("1_cq54o")
