@@ -28,7 +28,7 @@ func _interact_request(payload: Dictionary = {}) -> void:
 	rpc("_execute_interaction", out)
 
 
-@rpc("authority", "call_local", "reliable")
+@rpc("any_peer", "call_local", "reliable")
 func _execute_interaction(payload: Dictionary) -> void:
 	var runtime_payload := payload.duplicate(true)
 	runtime_payload["caller"] = _resolve_sender_node(int(payload.get("peer_id", -1)))

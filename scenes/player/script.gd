@@ -138,7 +138,6 @@ func _activate_powerup() -> void:
 	var cleanup = _powerup_scene_instance.will_dispose
 	_powerup_scene_instance.interact({})
 	if cleanup:
-		_powerup_scene_instance = null
 		powerup = ""
 
 func _sync_label() -> void:
@@ -152,6 +151,7 @@ func _sync_label() -> void:
 func _sync_powerup_scene() -> void:
 	_clear_powerup_scene()
 	if _powerup == "":
+		_powerup_scene_instance = null
 		return
 	var scene := powerup_scene_by_type.get(_powerup, null) as PackedScene
 	_powerup_scene_instance = scene.instantiate()
