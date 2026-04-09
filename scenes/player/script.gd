@@ -2,6 +2,10 @@ extends VehicleBody3D
 
 const STEERING_ANGLE := 0.45
 const THROTTLE_FORCE := 100.0
+const AIRBORNE_STEERING_MULTIPLIER := 0.35
+const AIRBORNE_ANGULAR_DAMPING_XZ := 7.0
+const AIRBORNE_ANGULAR_DAMPING_Y := 4.5
+const UPHILL_ENGINE_BOOST := 75.0
 const IDLE_TURN_SPEED := 1.8
 const IDLE_TURN_SPEED_THRESHOLD := 0.8
 const IDLE_TURN_DAMPING := 8.0
@@ -95,13 +99,23 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	var turn_input := Input.get_axis("turn_right", "turn_left")
 	var throttle_input := Input.get_axis("backward", "forward")
+	var is_grounded := _is_any_wheel_grounded()
 
-	steering = turn_input * STEERING_ANGLE
-	engine_force = throttle_input * THROTTLE_FORCE
+	var target_steering := turn_input * STEERING_ANGLE
+	if not is_grounded:
+		target_steering *= AIRBORNE_STEERING_MULTIPLIER
+	steering = target_steering
+
+	var target_engine_force := throttle_input * THROTTLE_FORCE
+	if is_grounded and throttle_input > 0.0:
+		var forward := global_transform.basis.z.normalized()
+		var uphill_factor := maxf(forward.dot(Vector3.UP), 0.0)
+		target_engine_force += uphill_factor * UPHILL_ENGINE_BOOST * throttle_input
+	engine_force = target_engine_force
 	_visual_steering = move_toward(_visual_steering, steering, WHEEL_STEER_INTERPOLATION_SPEED * delta)
 	_update_wheel_visuals(delta)
 
-	if linear_velocity.length() <= IDLE_TURN_SPEED_THRESHOLD:
+	if is_grounded and linear_velocity.length() <= IDLE_TURN_SPEED_THRESHOLD:
 		var next_angular_velocity := angular_velocity
 		if absf(turn_input) > 0.01:
 			var turn_direction: float = signf(turn_input)
@@ -120,6 +134,13 @@ func _physics_process(delta: float) -> void:
 			_idle_turn_direction = 0.0
 			next_angular_velocity.y = move_toward(next_angular_velocity.y, 0.0, IDLE_TURN_DAMPING * delta)
 		angular_velocity = next_angular_velocity
+
+	if not is_grounded:
+		var next_air_angular_velocity := angular_velocity
+		next_air_angular_velocity.x = move_toward(next_air_angular_velocity.x, 0.0, AIRBORNE_ANGULAR_DAMPING_XZ * delta)
+		next_air_angular_velocity.z = move_toward(next_air_angular_velocity.z, 0.0, AIRBORNE_ANGULAR_DAMPING_XZ * delta)
+		next_air_angular_velocity.y = move_toward(next_air_angular_velocity.y, 0.0, AIRBORNE_ANGULAR_DAMPING_Y * delta)
+		angular_velocity = next_air_angular_velocity
 
 	if Input.is_action_just_pressed("activate"):
 		_activate_powerup()
@@ -247,3 +268,9 @@ func _apply_synced_wheel_visuals() -> void:
 
 		var spin: float = synced_wheel_spin[i]
 		wheel.rotation = Vector3(base_rotation.x + spin, base_rotation.y + steer_offset, base_rotation.z)
+
+func _is_any_wheel_grounded() -> bool:
+	for wheel: VehicleWheel3D in _physics_wheels.values():
+		if wheel != null and wheel.is_in_contact():
+			return true
+	return false

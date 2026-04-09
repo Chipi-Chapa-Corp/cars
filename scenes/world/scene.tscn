@@ -1,12 +1,7 @@
 [gd_scene format=3 uid="uid://5syolhhmksjl"]
 
 [ext_resource type="Script" uid="uid://bbfi5lr4o61o5" path="res://scenes/world/script.gd" id="1_rmx8x"]
-
-[sub_resource type="PlaneMesh" id="PlaneMesh_th78l"]
-size = Vector2(10, 10)
-
-[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_th78l"]
-points = PackedVector3Array(-5, 0, -5, -5, 0, 5, 5, 0, -5, 5, 0, 5)
+[ext_resource type="PackedScene" uid="uid://tf030e4xsttm" path="res://scenes/maps/map-1/scene.tscn" id="2_bp46t"]
 
 [node name="World" type="Node3D" unique_id=1348487105 node_paths=PackedStringArray("_player_container", "_player_spawner_node", "_pickup_spawner_node")]
 script = ExtResource("1_rmx8x")
@@ -26,14 +21,6 @@ light_angular_distance = 0.5
 shadow_enabled = true
 directional_shadow_blend_splits = true
 
-[node name="Floor" type="StaticBody3D" parent="." unique_id=1797554357]
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Floor" unique_id=1198732282]
-mesh = SubResource("PlaneMesh_th78l")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor" unique_id=144680472]
-shape = SubResource("ConvexPolygonShape3D_th78l")
-
 [node name="Players" type="Node3D" parent="." unique_id=909791636]
 
 [node name="Spawner" type="MultiplayerSpawner" parent="Players" unique_id=942252448]
@@ -47,5 +34,7 @@ spawn_path = NodePath("..")
 [node name="Timer" type="Timer" parent="Powerups" unique_id=1442262871]
 wait_time = 3.0
 autostart = true
+
+[node name="Map" parent="." unique_id=1267941828 instance=ExtResource("2_bp46t")]
 
 [connection signal="timeout" from="Powerups/Timer" to="." method="_on_spawn_pickup"]
