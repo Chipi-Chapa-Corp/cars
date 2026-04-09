@@ -97,13 +97,13 @@ func _physics_process(delta: float) -> void:
 	_visual_steering = move_toward(_visual_steering, steering, WHEEL_STEER_INTERPOLATION_SPEED * delta)
 	_update_wheel_visuals(delta)
 
-	if absf(throttle_input) <= 0.01 and linear_velocity.length() <= IDLE_TURN_SPEED_THRESHOLD:
+	if linear_velocity.length() <= IDLE_TURN_SPEED_THRESHOLD:
 		var next_angular_velocity := angular_velocity
 		if absf(turn_input) > 0.01:
 			var turn_direction: float = signf(turn_input)
 			if turn_direction != _idle_turn_direction:
+				_idle_turn_elapsed = IDLE_TURN_DELAY if is_zero_approx(_idle_turn_direction) else 0.0
 				_idle_turn_direction = turn_direction
-				_idle_turn_elapsed = 0.0
 			else:
 				_idle_turn_elapsed += delta
 
@@ -116,9 +116,6 @@ func _physics_process(delta: float) -> void:
 			_idle_turn_direction = 0.0
 			next_angular_velocity.y = move_toward(next_angular_velocity.y, 0.0, IDLE_TURN_DAMPING * delta)
 		angular_velocity = next_angular_velocity
-	else:
-		_idle_turn_elapsed = 0.0
-		_idle_turn_direction = 0.0
 
 	if Input.is_action_just_pressed("activate"):
 		_activate_powerup()
