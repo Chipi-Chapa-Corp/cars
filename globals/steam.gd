@@ -30,7 +30,7 @@ func create_lobby() -> void:
 
 func refresh_lobby_list() -> void:
 	Steam.addRequestLobbyListDistanceFilter(Steam.LOBBY_DISTANCE_FILTER_WORLDWIDE)
-	Steam.addRequestLobbyListStringFilter("_app_id", "template", Steam.LOBBY_COMPARISON_EQUAL)
+	Steam.addRequestLobbyListStringFilter("_app_id", "com.chipichapa.cars", Steam.LOBBY_COMPARISON_EQUAL)
 	Steam.requestLobbyList()
 
 
@@ -77,7 +77,7 @@ func _on_lobby_created(lobby_connect: int, lobby_id: int) -> void:
 
 	current_lobby_id = lobby_id
 	Steam.setLobbyJoinable(lobby_id, true)
-	Steam.setLobbyData(lobby_id, "_app_id", "template")  # Dev mode only
+	Steam.setLobbyData(lobby_id, "_app_id", "com.chipichapa.cars") # Dev mode only
 	Steam.setLobbyData(lobby_id, "name", "Test Name")
 	Steam.setLobbyData(lobby_id, "state", "waiting")
 
