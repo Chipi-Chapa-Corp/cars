@@ -1,15 +1,11 @@
 extends VehicleBody3D
 
-const STEERING_ANGLE := 0.45
-const THROTTLE_FORCE := 100.0
+const STEERING_ANGLE := 0.35
+const THROTTLE_FORCE := 90.0
 const AIRBORNE_STEERING_MULTIPLIER := 0.35
 const AIRBORNE_ANGULAR_DAMPING_XZ := 7.0
 const AIRBORNE_ANGULAR_DAMPING_Y := 4.5
 const UPHILL_ENGINE_BOOST := 75.0
-const IDLE_TURN_SPEED := 1.8
-const IDLE_TURN_SPEED_THRESHOLD := 0.8
-const IDLE_TURN_DAMPING := 8.0
-const IDLE_TURN_DELAY := 0.1
 const WHEEL_STEER_INTERPOLATION_SPEED := 8.0
 const CAR_TYPES := ["speedster", "retro"]
 const WHEEL_GROUPS := [
@@ -54,8 +50,6 @@ var _wheel_base_rotation: Dictionary = {}
 var _wheel_spin: Dictionary = {}
 var _visual_steering := 0.0
 var _powerup_scene_instance: Node
-var _idle_turn_elapsed := 0.0
-var _idle_turn_direction := 0.0
 
 @onready var _physics_wheels: Dictionary = {
 	"wheel-left-front": $FrontLeft as VehicleWheel3D,
@@ -116,26 +110,6 @@ func _physics_process(delta: float) -> void:
 	engine_force = target_engine_force
 	_visual_steering = move_toward(_visual_steering, steering, WHEEL_STEER_INTERPOLATION_SPEED * delta)
 	_update_wheel_visuals(delta)
-
-	if is_grounded and linear_velocity.length() <= IDLE_TURN_SPEED_THRESHOLD:
-		var next_angular_velocity := angular_velocity
-		if absf(turn_input) > 0.01:
-			var turn_direction: float = signf(turn_input)
-			if turn_direction != _idle_turn_direction:
-				_idle_turn_elapsed = IDLE_TURN_DELAY if is_zero_approx(_idle_turn_direction) else 0.0
-				_idle_turn_direction = turn_direction
-			else:
-				_idle_turn_elapsed += delta
-
-			if _idle_turn_elapsed >= IDLE_TURN_DELAY:
-				next_angular_velocity.y = turn_input * IDLE_TURN_SPEED
-			else:
-				next_angular_velocity.y = move_toward(next_angular_velocity.y, 0.0, IDLE_TURN_DAMPING * delta)
-		else:
-			_idle_turn_elapsed = 0.0
-			_idle_turn_direction = 0.0
-			next_angular_velocity.y = move_toward(next_angular_velocity.y, 0.0, IDLE_TURN_DAMPING * delta)
-		angular_velocity = next_angular_velocity
 
 	if not is_grounded:
 		var next_air_angular_velocity := angular_velocity
