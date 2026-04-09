@@ -67,6 +67,8 @@ var _idle_turn_direction := 0.0
 var _powerup: String = ""
 @export var powerup: String = "":
 	set(value):
+		if _powerup == value:
+			return
 		_powerup = value
 		_sync_label()
 		_sync_powerup_scene()
@@ -157,10 +159,7 @@ func _on_interaction_available(body: Node3D) -> void:
 func _activate_powerup() -> void:
 	if _powerup_scene_instance == null:
 		return
-	var cleanup = _powerup_scene_instance.will_dispose
 	_powerup_scene_instance.interact({})
-	if cleanup:
-		powerup = ""
 
 func _sync_label() -> void:
 	if name_plate == null:
