@@ -9,6 +9,7 @@ const WORLD_MAX = Vector3(5, 0, 5)
 @export var _player_container: Node3D
 @export var _player_spawner_node: MultiplayerSpawner
 @export var _pickup_spawner_node: MultiplayerSpawner
+@export var _pickup_timer: Timer
 
 @onready var _player_spawner = PlayerSpawner.new(_player_container, _player_scene, _player_spawner_node)
 
@@ -16,6 +17,8 @@ const WORLD_MAX = Vector3(5, 0, 5)
 func _ready() -> void:
 	_pickup_spawner_node.spawn_function = Callable(self , "_pickup_spawn_function")
 	_player_spawner.run()
+	if multiplayer.is_server():
+		_pickup_timer.start()
 
 
 func _on_spawn_pickup() -> void:

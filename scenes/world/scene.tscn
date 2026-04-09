@@ -3,11 +3,12 @@
 [ext_resource type="Script" uid="uid://bbfi5lr4o61o5" path="res://scenes/world/script.gd" id="1_rmx8x"]
 [ext_resource type="PackedScene" uid="uid://tf030e4xsttm" path="res://scenes/maps/map-1/scene.tscn" id="2_bp46t"]
 
-[node name="World" type="Node3D" unique_id=1348487105 node_paths=PackedStringArray("_player_container", "_player_spawner_node", "_pickup_spawner_node")]
+[node name="World" type="Node3D" unique_id=1348487105 node_paths=PackedStringArray("_player_container", "_player_spawner_node", "_pickup_spawner_node", "_pickup_timer")]
 script = ExtResource("1_rmx8x")
 _player_container = NodePath("Players")
 _player_spawner_node = NodePath("Players/Spawner")
-_pickup_spawner_node = NodePath("Powerups/Spawner")
+_pickup_spawner_node = NodePath("Pickups/Spawner")
+_pickup_timer = NodePath("Pickups/Timer")
 
 [node name="Sun" type="DirectionalLight3D" parent="." unique_id=1316972284]
 transform = Transform3D(-0.6493247, -0.37542072, 0.66139, 0.006817406, 0.8667567, 0.49868473, -0.76048076, 0.32831728, -0.56024706, 4.871155, 2.4852488, -4.9991665)
@@ -26,15 +27,14 @@ directional_shadow_blend_splits = true
 [node name="Spawner" type="MultiplayerSpawner" parent="Players" unique_id=942252448]
 spawn_path = NodePath("..")
 
-[node name="Powerups" type="Node3D" parent="." unique_id=1035168473]
+[node name="Pickups" type="Node3D" parent="." unique_id=1035168473]
 
-[node name="Spawner" type="MultiplayerSpawner" parent="Powerups" unique_id=1938624550]
+[node name="Spawner" type="MultiplayerSpawner" parent="Pickups" unique_id=1938624550]
 spawn_path = NodePath("..")
 
-[node name="Timer" type="Timer" parent="Powerups" unique_id=1442262871]
+[node name="Timer" type="Timer" parent="Pickups" unique_id=1442262871]
 wait_time = 3.0
-autostart = true
 
 [node name="Map" parent="." unique_id=1267941828 instance=ExtResource("2_bp46t")]
 
-[connection signal="timeout" from="Powerups/Timer" to="." method="_on_spawn_pickup"]
+[connection signal="timeout" from="Pickups/Timer" to="." method="_on_spawn_pickup"]
