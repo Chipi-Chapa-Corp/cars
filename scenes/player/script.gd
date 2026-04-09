@@ -20,6 +20,8 @@ const WHEEL_GROUPS := [
 @export var name_plate: Label3D
 @export var healthbar: TextureProgressBar
 @export var powerup_slot: Node3D
+@export var hud_sprite_3d: Sprite3D
+@export var hud_viewport: SubViewport
 @export var powerup_scene_by_type: Dictionary[String, PackedScene] = {}
 
 var _hitpoints: int = 100
@@ -75,6 +77,8 @@ func prepare(data: Dictionary) -> void:
 
 func _ready() -> void:
 	_is_local = multiplayer.get_unique_id() == player_id
+	if hud_sprite_3d != null and hud_viewport != null:
+		hud_sprite_3d.texture = hud_viewport.get_texture()
 	if is_multiplayer_authority():
 		car_type = CAR_TYPES.pick_random()
 	else:
