@@ -7,17 +7,24 @@ extends Control
 
 func _ready() -> void:
 	NetworkManager.lobby_match_list_updated.connect(_set_rooms)
+	NetworkManager.lobby_created.connect(_on_lobby_ready)
+	NetworkManager.lobby_joined.connect(_on_lobby_ready)
 	refresh_timer.timeout.connect(func(): NetworkManager.refresh_lobby_list())
 
 
 func _on_host_pressed() -> void:
 	NetworkManager.create_lobby()
-	SceneManager.change_state(SceneManager.State.WORLD, false)
 
 
 func _on_join_room_pressed(room) -> void:
 	NetworkManager.join_lobby(room["id"])
-	SceneManager.change_state(SceneManager.State.WORLD, false)
+
+
+func _on_lobby_ready(error) -> void:
+	if error == null:
+		SceneManager.change_state(SceneManager.State.WORLD, false)
+	else:
+		push_error(error)
 
 
 func _set_rooms(rooms: Array) -> void:
