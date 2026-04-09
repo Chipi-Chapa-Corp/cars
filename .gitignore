@@ -6,3 +6,9 @@
 !/build/linux/
 /build/linux/*
 !/build/linux/.gitkeep
+!/build/windows/
+/build/windows/*
+!/build/windows/.gitkeep
+!/build/web/
+/build/web/*
+!/build/web/.gitkeep
