@@ -1,12 +1,30 @@
 extends Node3D
 
-var player_scene = preload("res://scenes/player/scene.tscn")
+var _player_scene = preload("res://scenes/player/scene.tscn")
+var _pickup_scene = preload("res://scenes/pickup/scene.tscn")
 
-@export var player_container: Node3D
-@export var player_spawner: MultiplayerSpawner
+const WORLD_MIN = Vector3(-5, 0, -5)
+const WORLD_MAX = Vector3(5, 0, 5)
 
-@onready var playerSpawner = Spawner.new(player_container, player_scene, player_spawner)
+@export var _player_container: Node3D
+@export var _player_spawner_node: MultiplayerSpawner
+@export var _pickup_spawner_node: MultiplayerSpawner
+
+@onready var _player_spawner = PlayerSpawner.new(_player_container, _player_scene, _player_spawner_node)
 
 
 func _ready() -> void:
-	playerSpawner.run()
+	_pickup_spawner_node.spawn_function = Callable(self , "_pickup_spawn_function")
+	_player_spawner.run()
+
+
+func _on_spawn_pickup() -> void:
+	var pickup_type = ["gun"].pick_random()
+	var pickup_position = Vector3(randf_range(WORLD_MIN.x, WORLD_MAX.x), 0, randf_range(WORLD_MIN.z, WORLD_MAX.z))
+	_pickup_spawner_node.spawn({"type": pickup_type, "position": pickup_position})
+
+
+func _pickup_spawn_function(data: Dictionary):
+	var pickup = _pickup_scene.instantiate()
+	pickup.prepare(data)
+	return pickup

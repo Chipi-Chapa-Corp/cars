@@ -80,6 +80,7 @@ transform = Transform3D(-1, 8.742278e-08, 0, 7.5710346e-08, 0.8660254, 0.5000000
 current = true
 
 [node name="Pickup" type="Area3D" parent="." unique_id=1292610372]
+monitorable = false
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Pickup" unique_id=1814024232]
 transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0.125, 0)
@@ -230,4 +231,4 @@ mesh = ExtResource("4_e8u37")
 transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -0.2, 0.125, -0.25)
 shape = SubResource("ConvexPolygonShape3D_8k1dt")
 
-[connection signal="body_entered" from="Pickup" to="." method="_on_interaction_available"]
+[connection signal="area_entered" from="Pickup" to="." method="_on_interaction_available"]

@@ -43,7 +43,8 @@ _data = {
 &"spin": SubResource("Animation_spin")
 }
 
-[node name="Pickup" type="StaticBody3D" unique_id=1005584549 node_paths=PackedStringArray("_animation_player", "_visual_slot") groups=["interactable", "pickupable"]]
+[node name="Pickup" type="Area3D" unique_id=829439836 node_paths=PackedStringArray("_animation_player", "_visual_slot") groups=["interactable", "pickupable"]]
+monitoring = false
 script = ExtResource("1_0xl45")
 _animation_player = NodePath("AnimationPlayer")
 _visual_slot = NodePath("Visual Slot")

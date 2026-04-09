@@ -108,7 +108,7 @@ func _process(_delta: float) -> void:
 
 
 func _on_interaction_available(body: Node3D) -> void:
-	if _is_local and body.is_in_group("pickupable"):
+	if _is_local and _powerup == "" and body.is_in_group("pickupable"):
 		body.interact({})
 
 func _sync_label() -> void:

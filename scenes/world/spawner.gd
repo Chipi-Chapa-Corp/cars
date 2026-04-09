@@ -1,5 +1,5 @@
 extends RefCounted
-class_name Spawner
+class_name PlayerSpawner
 
 var target_container: Node3D
 var target_scene: PackedScene
@@ -19,7 +19,7 @@ func _init(
 
 
 func run():
-	spawner.spawn_function = Callable(self, "_spawn_function")
+	spawner.spawn_function = Callable(self , "_spawn_function")
 
 	if multiplayer.is_server():
 		_spawn_for_peer(1)
