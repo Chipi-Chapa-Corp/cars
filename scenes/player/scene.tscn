@@ -7,6 +7,7 @@
 [ext_resource type="ArrayMesh" uid="uid://cq2k8l8340q1l" path="res://assets/cars/vehicle-speedster.obj" id="3_e8u37"]
 [ext_resource type="Texture2D" uid="uid://df1e01cr4qhth" path="res://assets/hud/hp.png" id="3_l3ro8"]
 [ext_resource type="ArrayMesh" uid="uid://ct62oxmcg7cls" path="res://assets/cars/wheel-small.obj" id="4_e8u37"]
+[ext_resource type="PackedScene" path="res://scenes/player/light_attack_effects.tscn" id="5_light_attack_fx"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_e4tch"]
 radius = 0.35
@@ -42,6 +43,9 @@ points = PackedVector3Array(-0.042411763, -0.022637758, -0.117044546, 0.03749418
 [sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_8k1dt"]
 points = PackedVector3Array(-0.042411763, -0.022637758, -0.117044546, 0.037494183, 0.01535818, 0.12296172, -0.038890474, 0.015185972, 0.12158298, 0.037494183, 0.12296172, -0.01535818, 0.04054308, -0.11678875, -0.03389423, -0.038638916, -0.10948665, 0.056623682, -0.06143687, 0.09837868, -0.018917155, 0.0625, 0.0074502802, -0.0969237, 0.0625, -0.04846185, 0.08573661, -0.06143687, -0.09837868, -0.018917155, -0.038615108, 0.064130224, -0.10563878, -0.03861601, 0.105641186, 0.06413169, 0.0625, 0.08573661, 0.04846185, -0.061436377, -0.018917006, 0.098377906, 0.037095707, -0.07980973, 0.095000245, 0.037095707, -0.07980973, -0.095000245, 0.03725345, 0.038166136, -0.11832458, -0.038638916, -0.10948665, -0.056623682, -0.061436377, -0.018917006, -0.098377906, 0.0625, -0.0969237, -0.0074502802, 0.037095707, 0.095000245, 0.07980973, -0.038639653, -0.056624737, 0.10948868, 0.037161645, 0.106599376, -0.06471338, -0.03869095, 0.1171854, -0.037798688, 0.03725345, -0.11832458, 0.038166136, 0.0625, 0.08573661, -0.04846185, -0.06088216, 0.06750135, 0.07499628, -0.038890798, -0.12158397, -0.015186096, -0.038615108, 0.064130224, 0.10563878, 0.037494183, -0.01535818, -0.12296172, -0.038615108, -0.064130224, -0.10563878, 0.0625, -0.063362405, -0.07454951)
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_light_attack"]
+size = Vector3(0.5, 0.28, 0.18)
+
 [node name="Player" type="RigidBody3D" unique_id=174486200 node_paths=PackedStringArray("healthbar", "powerup_slot", "hud_sprite_3d", "hud_viewport") groups=["player"]]
 mass = 40.0
 inertia = Vector3(4, 22, 4)
@@ -67,6 +71,38 @@ monitorable = false
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Pickup" unique_id=1814024232]
 transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0.125, 0)
 shape = SubResource("CapsuleShape3D_e4tch")
+
+[node name="LightAttackHitbox" type="Area3D" parent="."]
+position = Vector3(0, 0.22, 0.53)
+collision_layer = 0
+collision_mask = 1
+monitorable = false
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="LightAttackHitbox"]
+shape = SubResource("BoxShape3D_light_attack")
+
+[node name="LightAttackEffects" parent="." instance=ExtResource("5_light_attack_fx")]
+
+[node name="LightAttackRayLeft" type="RayCast3D" parent="."]
+position = Vector3(0.21, 0.22, 0.36)
+target_position = Vector3(0, 0, 0.46)
+collision_mask = 1
+debug_shape_custom_color = Color(1, 0.22, 0.025, 0.9)
+debug_shape_thickness = 2
+
+[node name="LightAttackRayCenter" type="RayCast3D" parent="."]
+position = Vector3(0, 0.22, 0.36)
+target_position = Vector3(0, 0, 0.46)
+collision_mask = 1
+debug_shape_custom_color = Color(1, 0.22, 0.025, 0.9)
+debug_shape_thickness = 2
+
+[node name="LightAttackRayRight" type="RayCast3D" parent="."]
+position = Vector3(-0.21, 0.22, 0.36)
+target_position = Vector3(0, 0, 0.46)
+collision_mask = 1
+debug_shape_custom_color = Color(1, 0.22, 0.025, 0.9)
+debug_shape_thickness = 2
 
 [node name="FrontRight" type="RayCast3D" parent="." unique_id=1987847735]
 position = Vector3(-0.2, 0.2, 0.25)
@@ -202,3 +238,4 @@ transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -0.2
 shape = SubResource("ConvexPolygonShape3D_8k1dt")
 
 [connection signal="area_entered" from="Pickup" to="." method="_on_interaction_available"]
+[connection signal="body_entered" from="LightAttackHitbox" to="." method="_on_light_attack_hitbox_body_entered"]

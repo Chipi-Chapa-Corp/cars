@@ -1,5 +1,14 @@
 extends RigidBody3D
 
+signal light_attack_hit(target: Node3D, damage: int)
+
+enum LightAttackState {
+	READY,
+	CHARGING,
+	IMPACT_STOP,
+	RECOILING,
+}
+
 const MAX_FORWARD_SPEED := 7.0
 const MAX_REVERSE_SPEED := 6.0
 const ENGINE_FORCE := 210.0
@@ -59,6 +68,14 @@ const SKID_MARK_MIN_SLIP_ANGLE := 0.14
 const SKID_MARK_MIN_HANDBRAKE := 0.45
 const MAX_SKID_MARK_SEGMENTS := 1000
 
+const LIGHT_ATTACK_CHARGE_SPEED := 9.0
+const LIGHT_ATTACK_CHARGE_DURATION := 0.2
+const LIGHT_ATTACK_IMPACT_STOP_DURATION := 0.06
+const LIGHT_ATTACK_RECOIL_SPEED := 3.0
+const LIGHT_ATTACK_RECOVERY_DURATION := 0.24
+const LIGHT_ATTACK_DAMAGE := 10
+const LIGHT_ATTACK_TARGET_IMPULSE := 120.0
+
 const DRIVE_SHARE := {
 	"wheel-left-front": 0.3,
 	"wheel-right-front": 0.3,
@@ -82,6 +99,17 @@ const FRONT_WHEELS := ["wheel-left-front", "wheel-right-front"]
 const REAR_WHEELS := ["wheel-left-rear", "wheel-right-rear"]
 
 @onready var camera: Camera3D = $Camera
+@onready var _light_attack_hitbox: Area3D = $LightAttackHitbox
+@onready var _light_attack_charge_streaks_left: GPUParticles3D = $LightAttackEffects/ChargeStreaksLeft
+@onready var _light_attack_charge_streaks_right: GPUParticles3D = $LightAttackEffects/ChargeStreaksRight
+@onready var _light_attack_charge_dust_left: GPUParticles3D = $LightAttackEffects/ChargeDustLeft
+@onready var _light_attack_charge_dust_right: GPUParticles3D = $LightAttackEffects/ChargeDustRight
+@onready var _light_attack_impact_sparks: GPUParticles3D = $LightAttackEffects/ImpactSparks
+@onready var _light_attack_contact_rays: Array[RayCast3D] = [
+	$LightAttackRayLeft as RayCast3D,
+	$LightAttackRayCenter as RayCast3D,
+	$LightAttackRayRight as RayCast3D,
+]
 
 @export var healthbar: TextureProgressBar
 @export var powerup_slot: Node3D
@@ -131,6 +159,9 @@ var _skid_mark_mesh: ImmediateMesh
 var _skid_mark_material: StandardMaterial3D
 var _skid_mark_segments: Array[Dictionary] = []
 var _last_skid_contact: Dictionary = {}
+var _light_attack_state := LightAttackState.READY
+var _light_attack_time_remaining := 0.0
+var _light_attack_forward := Vector3.ZERO
 
 @onready var _wheel_rays: Dictionary = {
 	"wheel-left-front": $FrontLeft as RayCast3D,
@@ -169,7 +200,11 @@ func _process(_delta: float) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if Input.is_action_just_pressed("light_attack"):
+		_start_light_attack()
 	_read_driver_input(delta)
+	if _light_attack_state != LightAttackState.READY:
+		_suppress_driver_during_light_attack()
 	_apply_wheel_forces(delta)
 	_update_skid_marks()
 	_apply_anti_roll_forces()
@@ -181,9 +216,198 @@ func _physics_process(delta: float) -> void:
 		WHEEL_STEER_INTERPOLATION_SPEED * delta
 	)
 	_update_wheel_visuals(delta)
+	_update_light_attack(delta)
 
 	if Input.is_action_just_pressed("activate"):
 		_activate_powerup()
+
+
+func _start_light_attack() -> void:
+	if _light_attack_state != LightAttackState.READY or not _is_any_wheel_grounded():
+		return
+	_light_attack_forward = global_transform.basis.z.slide(Vector3.UP).normalized()
+	if _light_attack_forward.length_squared() <= 0.0001:
+		return
+	_light_attack_state = LightAttackState.CHARGING
+	_light_attack_time_remaining = LIGHT_ATTACK_CHARGE_DURATION
+	_set_light_attack_contact_rays_enabled(true)
+	_set_light_attack_charge_particles(true)
+
+	for body: Node3D in _light_attack_hitbox.get_overlapping_bodies():
+		if body != self:
+			_finish_light_attack_charge(body)
+			break
+
+
+func _suppress_driver_during_light_attack() -> void:
+	_drive_input = 0.0
+	_service_brake_input = 0.0
+	_coast_brake_input = 0.0
+
+
+func _update_light_attack(delta: float) -> void:
+	if _light_attack_state == LightAttackState.READY:
+		return
+
+	_light_attack_time_remaining -= delta
+	match _light_attack_state:
+		LightAttackState.CHARGING:
+			_update_light_attack_dust_emitters()
+			_set_planar_velocity(_light_attack_forward * LIGHT_ATTACK_CHARGE_SPEED)
+			if _light_attack_time_remaining <= 0.0:
+				_finish_light_attack_charge()
+		LightAttackState.IMPACT_STOP:
+			_set_planar_velocity(Vector3.ZERO)
+			if _light_attack_time_remaining <= 0.0:
+				_start_light_attack_recoil()
+		LightAttackState.RECOILING:
+			if _light_attack_time_remaining <= 0.0:
+				_light_attack_state = LightAttackState.READY
+
+
+func _finish_light_attack_charge(target: Node3D = null) -> void:
+	if _light_attack_state != LightAttackState.CHARGING:
+		return
+	_light_attack_state = LightAttackState.IMPACT_STOP
+	_light_attack_time_remaining = LIGHT_ATTACK_IMPACT_STOP_DURATION
+	_set_light_attack_charge_particles(false)
+	_set_planar_velocity(Vector3.ZERO)
+	angular_velocity = Vector3.ZERO
+	if target != null:
+		_apply_light_attack_hit(target)
+		_emit_light_attack_impact_particles(target)
+	_set_light_attack_contact_rays_enabled(false)
+
+
+func _start_light_attack_recoil() -> void:
+	_light_attack_state = LightAttackState.RECOILING
+	_light_attack_time_remaining = LIGHT_ATTACK_RECOVERY_DURATION
+	_set_planar_velocity(-_light_attack_forward * LIGHT_ATTACK_RECOIL_SPEED)
+
+
+func _set_planar_velocity(planar_velocity: Vector3) -> void:
+	var vertical_velocity := Vector3.UP * linear_velocity.dot(Vector3.UP)
+	linear_velocity = planar_velocity + vertical_velocity
+
+
+func _set_light_attack_charge_particles(is_emitting: bool) -> void:
+	for particles: GPUParticles3D in [
+		_light_attack_charge_streaks_left,
+		_light_attack_charge_streaks_right,
+	]:
+		particles.emitting = is_emitting
+		if is_emitting:
+			particles.restart()
+	if is_emitting:
+		_update_light_attack_dust_emitters()
+	else:
+		_light_attack_charge_dust_left.emitting = false
+		_light_attack_charge_dust_right.emitting = false
+
+
+func _update_light_attack_dust_emitters() -> void:
+	var wheel_emitters := {
+		"wheel-left-rear": _light_attack_charge_dust_left,
+		"wheel-right-rear": _light_attack_charge_dust_right,
+	}
+	for wheel_group: String in wheel_emitters:
+		var particles: GPUParticles3D = wheel_emitters[wheel_group]
+		var point_value: Variant = _wheel_contact_point.get(wheel_group, null)
+		var normal_value: Variant = _wheel_contact_normal.get(wheel_group, null)
+		if point_value == null or normal_value == null:
+			particles.emitting = false
+			continue
+
+		var contact_point: Vector3 = point_value
+		var contact_normal: Vector3 = normal_value
+		var surface_forward := global_transform.basis.z.slide(contact_normal).normalized()
+		if surface_forward.length_squared() <= 0.0001:
+			surface_forward = _light_attack_forward.slide(contact_normal).normalized()
+		var surface_right := contact_normal.cross(surface_forward).normalized()
+		particles.global_transform = Transform3D(
+			Basis(surface_right, contact_normal, surface_forward),
+			contact_point + contact_normal * 0.035
+		)
+		if not particles.emitting:
+			particles.emitting = true
+			particles.restart()
+
+
+func _set_light_attack_contact_rays_enabled(is_enabled: bool) -> void:
+	for ray: RayCast3D in _light_attack_contact_rays:
+		ray.enabled = is_enabled
+		if is_enabled:
+			ray.force_raycast_update()
+
+
+func _emit_light_attack_impact_particles(target: Node3D) -> void:
+	var contact := _find_light_attack_contact(target)
+	var impact_point := (
+		global_position
+		+ _light_attack_forward * 0.58
+		+ Vector3.UP * 0.23
+	)
+	var impact_normal := -_light_attack_forward
+	if not contact.is_empty():
+		impact_point = contact["point"]
+		impact_normal = contact["normal"]
+
+	var impact_right := Vector3.UP.cross(impact_normal)
+	if impact_right.length_squared() <= 0.0001:
+		impact_right = global_transform.basis.x.slide(impact_normal)
+	impact_right = impact_right.normalized()
+	var impact_up := impact_normal.cross(impact_right).normalized()
+	_light_attack_impact_sparks.global_transform = Transform3D(
+		Basis(impact_right, impact_up, impact_normal).orthonormalized(),
+		impact_point + impact_normal * 0.012
+	)
+	_light_attack_impact_sparks.emitting = true
+	_light_attack_impact_sparks.restart()
+
+
+func _find_light_attack_contact(target: Node3D) -> Dictionary:
+	var closest_contact: Dictionary = {}
+	var closest_distance_squared := INF
+	for ray: RayCast3D in _light_attack_contact_rays:
+		ray.force_raycast_update()
+		if not ray.is_colliding():
+			continue
+		var collider := ray.get_collider() as Node
+		if collider == null:
+			continue
+		var is_target := (
+			collider == target
+			or collider.is_ancestor_of(target)
+			or target.is_ancestor_of(collider)
+		)
+		if not is_target:
+			continue
+		var point := ray.get_collision_point()
+		var distance_squared := ray.global_position.distance_squared_to(point)
+		if distance_squared < closest_distance_squared:
+			closest_distance_squared = distance_squared
+			closest_contact = {
+				"point": point,
+				"normal": ray.get_collision_normal().normalized(),
+			}
+	return closest_contact
+
+
+func _apply_light_attack_hit(target: Node3D) -> void:
+	var damage_target: Node = target
+	while damage_target != null and not damage_target.has_method("take_damage"):
+		damage_target = damage_target.get_parent()
+	if damage_target != null:
+		damage_target.call("take_damage", LIGHT_ATTACK_DAMAGE, self)
+	if target is RigidBody3D:
+		var target_body := target as RigidBody3D
+		target_body.apply_central_impulse(_light_attack_forward * LIGHT_ATTACK_TARGET_IMPULSE)
+	light_attack_hit.emit(target, LIGHT_ATTACK_DAMAGE)
+
+
+func _on_light_attack_hitbox_body_entered(body: Node3D) -> void:
+	if body != self:
+		_finish_light_attack_charge(body)
 
 
 func _read_driver_input(delta: float) -> void:
@@ -655,6 +879,10 @@ func _sync_healthbar() -> void:
 	if healthbar == null:
 		return
 	healthbar.value = clampf(float(hitpoints), healthbar.min_value, healthbar.max_value)
+
+
+func take_damage(amount: int, _source: Node = null) -> void:
+	hitpoints -= maxi(amount, 0)
 
 
 func _set_car_type(value: String) -> void:
