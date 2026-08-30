@@ -4,11 +4,9 @@
 [ext_resource type="PackedScene" uid="uid://dgr33nmap0001" path="res://scenes/maps/map/scene.tscn" id="2_bp46t"]
 [ext_resource type="PackedScene" uid="uid://imkjxaxhglnx" path="res://scenes/box/scene.tscn" id="3_0rkgh"]
 
-[node name="World" type="Node3D" unique_id=1348487105 node_paths=PackedStringArray("_player_container", "_pickup_container", "_pickup_timer")]
+[node name="World" type="Node3D" unique_id=1348487105 node_paths=PackedStringArray("_player_container")]
 script = ExtResource("1_rmx8x")
 _player_container = NodePath("Players")
-_pickup_container = NodePath("Pickups")
-_pickup_timer = NodePath("Pickups/Timer")
 
 [node name="Sun" type="DirectionalLight3D" parent="." unique_id=1316972284]
 transform = Transform3D(-0.6493247, -0.37542072, 0.66139, 0.006817406, 0.8667567, 0.49868473, -0.76048076, 0.32831728, -0.56024706, 4.871155, 2.4852488, -4.9991665)
@@ -23,11 +21,6 @@ shadow_enabled = true
 directional_shadow_blend_splits = true
 
 [node name="Players" type="Node3D" parent="." unique_id=909791636]
-
-[node name="Pickups" type="Node3D" parent="." unique_id=1035168473]
-
-[node name="Timer" type="Timer" parent="Pickups" unique_id=1442262871]
-wait_time = 3.0
 
 [node name="Map" parent="." unique_id=351248380 instance=ExtResource("2_bp46t")]
 
@@ -57,5 +50,3 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.597746, 0, 19.605062)
 
 [node name="Box9" parent="." unique_id=186941336 instance=ExtResource("3_0rkgh")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.634134, 0, 19.605062)
-
-[connection signal="timeout" from="Pickups/Timer" to="." method="_on_spawn_pickup"]

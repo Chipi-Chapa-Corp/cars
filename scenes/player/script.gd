@@ -105,16 +105,9 @@ const REAR_WHEELS := ["wheel-left-rear", "wheel-right-rear"]
 @onready var _light_attack_charge_dust_left: GPUParticles3D = $LightAttackEffects/ChargeDustLeft
 @onready var _light_attack_charge_dust_right: GPUParticles3D = $LightAttackEffects/ChargeDustRight
 @onready var _light_attack_impact_sparks: GPUParticles3D = $LightAttackEffects/ImpactSparks
-@onready var _light_attack_contact_rays: Array[RayCast3D] = [
-	$LightAttackRayLeft as RayCast3D,
-	$LightAttackRayCenter as RayCast3D,
-	$LightAttackRayRight as RayCast3D,
-]
 
 @export var healthbar: TextureProgressBar
 @export var powerup_slot: Node3D
-@export var hud_sprite_3d: Sprite3D
-@export var hud_viewport: SubViewport
 @export var powerup_scene_by_type: Dictionary[String, PackedScene] = {}
 
 var _hitpoints: int = 100
@@ -182,8 +175,6 @@ var _powerup: String = ""
 
 
 func _ready() -> void:
-	if hud_sprite_3d != null and hud_viewport != null:
-		hud_sprite_3d.texture = hud_viewport.get_texture()
 	car_type = CAR_TYPES.pick_random()
 	_cache_wheel_visual_offsets()
 	_setup_skid_marks()
@@ -230,7 +221,6 @@ func _start_light_attack() -> void:
 		return
 	_light_attack_state = LightAttackState.CHARGING
 	_light_attack_time_remaining = LIGHT_ATTACK_CHARGE_DURATION
-	_set_light_attack_contact_rays_enabled(true)
 	_set_light_attack_charge_particles(true)
 
 	for body: Node3D in _light_attack_hitbox.get_overlapping_bodies():
@@ -276,7 +266,6 @@ func _finish_light_attack_charge(target: Node3D = null) -> void:
 	if target != null:
 		_apply_light_attack_hit(target)
 		_emit_light_attack_impact_particles(target)
-	_set_light_attack_contact_rays_enabled(false)
 
 
 func _start_light_attack_recoil() -> void:
@@ -333,24 +322,32 @@ func _update_light_attack_dust_emitters() -> void:
 			particles.restart()
 
 
-func _set_light_attack_contact_rays_enabled(is_enabled: bool) -> void:
-	for ray: RayCast3D in _light_attack_contact_rays:
-		ray.enabled = is_enabled
-		if is_enabled:
-			ray.force_raycast_update()
-
-
 func _emit_light_attack_impact_particles(target: Node3D) -> void:
-	var contact := _find_light_attack_contact(target)
-	var impact_point := (
-		global_position
-		+ _light_attack_forward * 0.58
-		+ Vector3.UP * 0.23
+	var attacker_bounds := _get_collision_bounds(self)
+	var target_bounds := _get_collision_bounds(target)
+	var attacker_center: Vector3 = attacker_bounds["center"]
+	var target_center: Vector3 = target_bounds["center"]
+	var center_direction := (target_center - attacker_center).slide(Vector3.UP)
+	if center_direction.length_squared() <= 0.0001:
+		center_direction = _light_attack_forward
+	center_direction = center_direction.normalized()
+
+	var attacker_surface := (
+		attacker_center
+		+ center_direction * _distance_to_bounds_surface(
+			attacker_bounds,
+			center_direction
+		)
 	)
-	var impact_normal := -_light_attack_forward
-	if not contact.is_empty():
-		impact_point = contact["point"]
-		impact_normal = contact["normal"]
+	var target_surface := (
+		target_center
+		- center_direction * _distance_to_bounds_surface(
+			target_bounds,
+			-center_direction
+		)
+	)
+	var impact_point := (attacker_surface + target_surface) * 0.5
+	var impact_normal := -center_direction
 
 	var impact_right := Vector3.UP.cross(impact_normal)
 	if impact_right.length_squared() <= 0.0001:
@@ -365,32 +362,72 @@ func _emit_light_attack_impact_particles(target: Node3D) -> void:
 	_light_attack_impact_sparks.restart()
 
 
-func _find_light_attack_contact(target: Node3D) -> Dictionary:
-	var closest_contact: Dictionary = {}
-	var closest_distance_squared := INF
-	for ray: RayCast3D in _light_attack_contact_rays:
-		ray.force_raycast_update()
-		if not ray.is_colliding():
+func _get_collision_bounds(body: Node3D) -> Dictionary:
+	for child: Node in body.get_children():
+		if not child is CollisionShape3D:
 			continue
-		var collider := ray.get_collider() as Node
-		if collider == null:
+		var collision_shape := child as CollisionShape3D
+		if collision_shape.disabled or collision_shape.shape == null:
 			continue
-		var is_target := (
-			collider == target
-			or collider.is_ancestor_of(target)
-			or target.is_ancestor_of(collider)
+		var local_bounds := _get_shape_local_bounds(collision_shape.shape)
+		if local_bounds.size.length_squared() <= 0.0001:
+			continue
+		return {
+			"center": collision_shape.global_transform * local_bounds.get_center(),
+			"transform": collision_shape.global_transform,
+			"local_bounds": local_bounds,
+		}
+
+	var fallback_size := Vector3(0.7, 0.5, 0.7)
+	return {
+		"center": body.global_position,
+		"transform": body.global_transform,
+		"local_bounds": AABB(-fallback_size * 0.5, fallback_size),
+	}
+
+
+func _get_shape_local_bounds(shape: Shape3D) -> AABB:
+	if shape is BoxShape3D:
+		var box := shape as BoxShape3D
+		return AABB(-box.size * 0.5, box.size)
+	if shape is ConvexPolygonShape3D:
+		var convex := shape as ConvexPolygonShape3D
+		if convex.points.is_empty():
+			return AABB()
+		var minimum := convex.points[0]
+		var maximum := convex.points[0]
+		for point: Vector3 in convex.points:
+			minimum = minimum.min(point)
+			maximum = maximum.max(point)
+		return AABB(minimum, maximum - minimum)
+	if shape is SphereShape3D:
+		var sphere := shape as SphereShape3D
+		var diameter := Vector3.ONE * sphere.radius * 2.0
+		return AABB(-diameter * 0.5, diameter)
+	if shape is CapsuleShape3D:
+		var capsule := shape as CapsuleShape3D
+		var capsule_size := Vector3(
+			capsule.radius * 2.0,
+			capsule.height,
+			capsule.radius * 2.0
 		)
-		if not is_target:
-			continue
-		var point := ray.get_collision_point()
-		var distance_squared := ray.global_position.distance_squared_to(point)
-		if distance_squared < closest_distance_squared:
-			closest_distance_squared = distance_squared
-			closest_contact = {
-				"point": point,
-				"normal": ray.get_collision_normal().normalized(),
-			}
-	return closest_contact
+		return AABB(-capsule_size * 0.5, capsule_size)
+	return AABB()
+
+
+func _distance_to_bounds_surface(bounds: Dictionary, world_direction: Vector3) -> float:
+	var shape_transform: Transform3D = bounds["transform"]
+	var local_bounds: AABB = bounds["local_bounds"]
+	var local_direction := shape_transform.basis.inverse() * world_direction
+	var half_size := local_bounds.size * 0.5
+	var distance := INF
+	for axis in 3:
+		var axis_direction := absf(local_direction[axis])
+		if axis_direction > 0.0001:
+			distance = minf(distance, half_size[axis] / axis_direction)
+	if is_inf(distance):
+		return 0.0
+	return distance
 
 
 func _apply_light_attack_hit(target: Node3D) -> void:

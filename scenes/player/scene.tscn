@@ -46,17 +46,15 @@ points = PackedVector3Array(-0.042411763, -0.022637758, -0.117044546, 0.03749418
 [sub_resource type="BoxShape3D" id="BoxShape3D_light_attack"]
 size = Vector3(0.5, 0.28, 0.18)
 
-[node name="Player" type="RigidBody3D" unique_id=174486200 node_paths=PackedStringArray("healthbar", "powerup_slot", "hud_sprite_3d", "hud_viewport") groups=["player"]]
+[node name="Player" type="RigidBody3D" unique_id=174486200 node_paths=PackedStringArray("healthbar", "powerup_slot") groups=["player"]]
 mass = 40.0
 inertia = Vector3(4, 22, 4)
 center_of_mass_mode = 1
 center_of_mass = Vector3(0, 0.1, 0)
 continuous_cd = true
 script = ExtResource("1_xvkdw")
-healthbar = NodePath("Visual/HUD/TextureProgressBar")
+healthbar = NodePath("HUD/TextureProgressBar")
 powerup_slot = NodePath("Visual/PowerupSlot")
-hud_sprite_3d = NodePath("Visual/HUD 3D")
-hud_viewport = NodePath("Visual/HUD")
 powerup_scene_by_type = Dictionary[String, PackedScene]({
 "gun": ExtResource("2_l3ro8")
 })
@@ -64,6 +62,24 @@ powerup_scene_by_type = Dictionary[String, PackedScene]({
 [node name="Camera" type="Camera3D" parent="." unique_id=1939469741]
 transform = Transform3D(-1, 8.742278e-08, 0, 7.5710346e-08, 0.8660254, 0.50000006, 4.3711392e-08, 0.50000006, -0.8660254, 0, 1.349, -1.3768253)
 current = true
+
+[node name="HUD" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="TextureProgressBar" type="TextureProgressBar" parent="HUD"]
+anchors_preset = 6
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = -52.0
+offset_right = 280.0
+offset_bottom = -24.0
+grow_vertical = 0
+mouse_filter = 2
+value = 45.0
+nine_patch_stretch = true
+texture_under = ExtResource("2_go6ih")
+texture_progress = ExtResource("3_l3ro8")
 
 [node name="Pickup" type="Area3D" parent="." unique_id=1292610372]
 monitorable = false
@@ -82,27 +98,6 @@ monitorable = false
 shape = SubResource("BoxShape3D_light_attack")
 
 [node name="LightAttackEffects" parent="." instance=ExtResource("5_light_attack_fx")]
-
-[node name="LightAttackRayLeft" type="RayCast3D" parent="."]
-position = Vector3(0.21, 0.22, 0.36)
-target_position = Vector3(0, 0, 0.46)
-collision_mask = 1
-debug_shape_custom_color = Color(1, 0.22, 0.025, 0.9)
-debug_shape_thickness = 2
-
-[node name="LightAttackRayCenter" type="RayCast3D" parent="."]
-position = Vector3(0, 0.22, 0.36)
-target_position = Vector3(0, 0, 0.46)
-collision_mask = 1
-debug_shape_custom_color = Color(1, 0.22, 0.025, 0.9)
-debug_shape_thickness = 2
-
-[node name="LightAttackRayRight" type="RayCast3D" parent="."]
-position = Vector3(-0.21, 0.22, 0.36)
-target_position = Vector3(0, 0, 0.46)
-collision_mask = 1
-debug_shape_custom_color = Color(1, 0.22, 0.025, 0.9)
-debug_shape_thickness = 2
 
 [node name="FrontRight" type="RayCast3D" parent="." unique_id=1987847735]
 position = Vector3(-0.2, 0.2, 0.25)
@@ -126,21 +121,6 @@ enabled = true
 
 [node name="Visual" type="Node3D" parent="." unique_id=689486154]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2737025, 0)
-
-[node name="HUD 3D" type="Sprite3D" parent="Visual" unique_id=1355378924]
-transform = Transform3D(0.135, 0, 0, 0, 0.135, 0, 0, 0, 0.135, 0, 0.45336914, 0)
-billboard = 1
-
-[node name="HUD" type="SubViewport" parent="Visual" unique_id=1071415259]
-transparent_bg = true
-size = Vector2i(512, 140)
-
-[node name="TextureProgressBar" type="TextureProgressBar" parent="Visual/HUD" unique_id=1976256746]
-offset_right = 40.0
-offset_bottom = 40.0
-value = 45.0
-texture_under = ExtResource("2_go6ih")
-texture_progress = ExtResource("3_l3ro8")
 
 [node name="PowerupSlot" type="Node3D" parent="Visual" unique_id=464308254]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
