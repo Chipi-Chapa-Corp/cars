@@ -46,14 +46,17 @@ points = PackedVector3Array(-0.042411763, -0.022637758, -0.117044546, 0.03749418
 [sub_resource type="BoxShape3D" id="BoxShape3D_light_attack"]
 size = Vector3(0.5, 0.28, 0.18)
 
-[node name="Player" type="RigidBody3D" unique_id=174486200 node_paths=PackedStringArray("healthbar", "powerup_slot") groups=["player"]]
+[node name="Player" type="RigidBody3D" unique_id=174486200 node_paths=PackedStringArray("healthbar", "light_attack_cooldown_bar", "powerup_slot") groups=["player"]]
 mass = 40.0
 inertia = Vector3(4, 22, 4)
 center_of_mass_mode = 1
 center_of_mass = Vector3(0, 0.1, 0)
 continuous_cd = true
+contact_monitor = true
+max_contacts_reported = 8
 script = ExtResource("1_xvkdw")
 healthbar = NodePath("HUD/TextureProgressBar")
+light_attack_cooldown_bar = NodePath("HUD/LightAttackCooldownBar")
 powerup_slot = NodePath("Visual/PowerupSlot")
 powerup_scene_by_type = Dictionary[String, PackedScene]({
 "gun": ExtResource("2_l3ro8")
@@ -81,6 +84,22 @@ nine_patch_stretch = true
 texture_under = ExtResource("2_go6ih")
 texture_progress = ExtResource("3_l3ro8")
 
+[node name="LightAttackCooldownBar" type="TextureProgressBar" parent="HUD"]
+anchors_preset = 6
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = -88.0
+offset_right = 280.0
+offset_bottom = -60.0
+grow_vertical = 0
+mouse_filter = 2
+value = 100.0
+nine_patch_stretch = true
+texture_under = ExtResource("2_go6ih")
+texture_progress = ExtResource("3_l3ro8")
+tint_progress = Color(0.35, 0.7, 1, 1)
+
 [node name="Pickup" type="Area3D" parent="." unique_id=1292610372]
 monitorable = false
 
@@ -96,6 +115,14 @@ monitorable = false
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="LightAttackHitbox"]
 shape = SubResource("BoxShape3D_light_attack")
+
+[node name="LightAttackShapeCast" type="ShapeCast3D" parent="."]
+position = Vector3(0, 0.22, 0.53)
+target_position = Vector3(0, 0, 0.2)
+collision_mask = 1
+shape = SubResource("BoxShape3D_light_attack")
+enabled = false
+max_results = 8
 
 [node name="LightAttackEffects" parent="." instance=ExtResource("5_light_attack_fx")]
 
@@ -218,4 +245,5 @@ transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -0.2
 shape = SubResource("ConvexPolygonShape3D_8k1dt")
 
 [connection signal="area_entered" from="Pickup" to="." method="_on_interaction_available"]
+[connection signal="body_entered" from="." to="." method="_on_light_attack_body_contact"]
 [connection signal="body_entered" from="LightAttackHitbox" to="." method="_on_light_attack_hitbox_body_entered"]

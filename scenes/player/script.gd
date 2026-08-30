@@ -5,8 +5,6 @@ signal light_attack_hit(target: Node3D, damage: int)
 enum LightAttackState {
 	READY,
 	CHARGING,
-	IMPACT_STOP,
-	RECOILING,
 }
 
 const MAX_FORWARD_SPEED := 7.0
@@ -70,11 +68,13 @@ const MAX_SKID_MARK_SEGMENTS := 1000
 
 const LIGHT_ATTACK_CHARGE_SPEED := 9.0
 const LIGHT_ATTACK_CHARGE_DURATION := 0.2
-const LIGHT_ATTACK_IMPACT_STOP_DURATION := 0.06
-const LIGHT_ATTACK_RECOIL_SPEED := 3.0
-const LIGHT_ATTACK_RECOVERY_DURATION := 0.24
+const LIGHT_ATTACK_FORCE := 1800.0
+const LIGHT_ATTACK_COOLDOWN_DURATION := 0.5
+const LIGHT_ATTACK_HIT_GRACE_DURATION := 0.8
+const LIGHT_ATTACK_SELF_RECOIL_SPEED := 3.0
 const LIGHT_ATTACK_DAMAGE := 10
 const LIGHT_ATTACK_TARGET_IMPULSE := 120.0
+const LIGHT_ATTACK_DEBUG_LOGS := true
 
 const DRIVE_SHARE := {
 	"wheel-left-front": 0.3,
@@ -100,6 +100,7 @@ const REAR_WHEELS := ["wheel-left-rear", "wheel-right-rear"]
 
 @onready var camera: Camera3D = $Camera
 @onready var _light_attack_hitbox: Area3D = $LightAttackHitbox
+@onready var _light_attack_shape_cast: ShapeCast3D = $LightAttackShapeCast
 @onready var _light_attack_charge_streaks_left: GPUParticles3D = $LightAttackEffects/ChargeStreaksLeft
 @onready var _light_attack_charge_streaks_right: GPUParticles3D = $LightAttackEffects/ChargeStreaksRight
 @onready var _light_attack_charge_dust_left: GPUParticles3D = $LightAttackEffects/ChargeDustLeft
@@ -107,6 +108,7 @@ const REAR_WHEELS := ["wheel-left-rear", "wheel-right-rear"]
 @onready var _light_attack_impact_sparks: GPUParticles3D = $LightAttackEffects/ImpactSparks
 
 @export var healthbar: TextureProgressBar
+@export var light_attack_cooldown_bar: TextureProgressBar
 @export var powerup_slot: Node3D
 @export var powerup_scene_by_type: Dictionary[String, PackedScene] = {}
 
@@ -154,7 +156,12 @@ var _skid_mark_segments: Array[Dictionary] = []
 var _last_skid_contact: Dictionary = {}
 var _light_attack_state := LightAttackState.READY
 var _light_attack_time_remaining := 0.0
+var _light_attack_cooldown_remaining := 0.0
+var _light_attack_hit_grace_remaining := 0.0
 var _light_attack_forward := Vector3.ZERO
+var _light_attack_start_planar_speed := 0.0
+var _light_attack_debug_file: FileAccess
+var _light_attack_debug_path := ""
 
 @onready var _wheel_rays: Dictionary = {
 	"wheel-left-front": $FrontLeft as RayCast3D,
@@ -175,6 +182,7 @@ var _powerup: String = ""
 
 
 func _ready() -> void:
+	_setup_light_attack_debug_log()
 	car_type = CAR_TYPES.pick_random()
 	_cache_wheel_visual_offsets()
 	_setup_skid_marks()
@@ -184,6 +192,7 @@ func _ready() -> void:
 	camera.current = true
 	_sync_powerup_scene()
 	_sync_healthbar()
+	_sync_light_attack_cooldown_bar()
 
 
 func _process(_delta: float) -> void:
@@ -192,10 +201,14 @@ func _process(_delta: float) -> void:
 
 func _physics_process(delta: float) -> void:
 	if Input.is_action_just_pressed("light_attack"):
+		_log_light_attack_event("attack_requested")
 		_start_light_attack()
+	_light_attack_cooldown_remaining = maxf(
+		_light_attack_cooldown_remaining - delta,
+		0.0
+	)
+	_update_light_attack_hit_grace(delta)
 	_read_driver_input(delta)
-	if _light_attack_state != LightAttackState.READY:
-		_suppress_driver_during_light_attack()
 	_apply_wheel_forces(delta)
 	_update_skid_marks()
 	_apply_anti_roll_forces()
@@ -208,31 +221,40 @@ func _physics_process(delta: float) -> void:
 	)
 	_update_wheel_visuals(delta)
 	_update_light_attack(delta)
+	_sync_light_attack_cooldown_bar()
 
 	if Input.is_action_just_pressed("activate"):
 		_activate_powerup()
 
 
 func _start_light_attack() -> void:
-	if _light_attack_state != LightAttackState.READY or not _is_any_wheel_grounded():
+	if _light_attack_state != LightAttackState.READY:
+		_log_light_attack_event("attack_rejected", {"reason": "state_not_ready"})
+		return
+	if _light_attack_cooldown_remaining > 0.0:
+		_log_light_attack_event("attack_rejected", {"reason": "cooldown_active"})
+		return
+	if not _is_any_wheel_grounded():
+		_log_light_attack_event("attack_rejected", {"reason": "not_grounded"})
 		return
 	_light_attack_forward = global_transform.basis.z.slide(Vector3.UP).normalized()
 	if _light_attack_forward.length_squared() <= 0.0001:
+		_log_light_attack_event("attack_rejected", {"reason": "invalid_forward"})
 		return
+	if _light_attack_hit_grace_remaining > 0.0:
+		_log_light_attack_event("hit_grace_replaced_by_new_attack")
+	_light_attack_hit_grace_remaining = 0.0
+	_light_attack_start_planar_speed = linear_velocity.slide(Vector3.UP).length()
 	_light_attack_state = LightAttackState.CHARGING
 	_light_attack_time_remaining = LIGHT_ATTACK_CHARGE_DURATION
+	_light_attack_shape_cast.enabled = true
 	_set_light_attack_charge_particles(true)
+	_log_light_attack_event("attack_started")
 
 	for body: Node3D in _light_attack_hitbox.get_overlapping_bodies():
 		if body != self:
-			_finish_light_attack_charge(body)
-			break
-
-
-func _suppress_driver_during_light_attack() -> void:
-	_drive_input = 0.0
-	_service_brake_input = 0.0
-	_coast_brake_input = 0.0
+			_handle_light_attack_collision(body, "start_overlap_poll")
+			return
 
 
 func _update_light_attack(delta: float) -> void:
@@ -242,44 +264,246 @@ func _update_light_attack(delta: float) -> void:
 	_light_attack_time_remaining -= delta
 	match _light_attack_state:
 		LightAttackState.CHARGING:
+			if _light_attack_time_remaining <= 0.0:
+				_finish_light_attack_charge(null, "timeout")
+				return
+			_log_light_attack_event("attack_active_tick")
 			_update_light_attack_dust_emitters()
-			_set_planar_velocity(_light_attack_forward * LIGHT_ATTACK_CHARGE_SPEED)
-			if _light_attack_time_remaining <= 0.0:
-				_finish_light_attack_charge()
-		LightAttackState.IMPACT_STOP:
-			_set_planar_velocity(Vector3.ZERO)
-			if _light_attack_time_remaining <= 0.0:
-				_start_light_attack_recoil()
-		LightAttackState.RECOILING:
-			if _light_attack_time_remaining <= 0.0:
-				_light_attack_state = LightAttackState.READY
+			_apply_light_attack_force(delta)
 
 
-func _finish_light_attack_charge(target: Node3D = null) -> void:
+func _finish_light_attack_charge(
+	target: Node3D = null,
+	detection_source: String = "unknown"
+) -> void:
 	if _light_attack_state != LightAttackState.CHARGING:
+		_log_light_attack_event("finish_ignored", {
+			"detection_source": detection_source,
+			"target": _light_attack_debug_node_name(target),
+		})
 		return
-	_light_attack_state = LightAttackState.IMPACT_STOP
-	_light_attack_time_remaining = LIGHT_ATTACK_IMPACT_STOP_DURATION
+	_log_light_attack_event("attack_finishing", {
+		"detection_source": detection_source,
+		"target": _light_attack_debug_node_name(target),
+	})
 	_set_light_attack_charge_particles(false)
-	_set_planar_velocity(Vector3.ZERO)
-	angular_velocity = Vector3.ZERO
+	_remove_light_attack_speed_boost()
 	if target != null:
 		_apply_light_attack_hit(target)
+		_apply_light_attack_self_recoil()
 		_emit_light_attack_impact_particles(target)
+	else:
+		_light_attack_hit_grace_remaining = LIGHT_ATTACK_HIT_GRACE_DURATION
+		_log_light_attack_event("hit_grace_started")
+	_finish_light_attack()
 
 
-func _start_light_attack_recoil() -> void:
-	_light_attack_state = LightAttackState.RECOILING
-	_light_attack_time_remaining = LIGHT_ATTACK_RECOVERY_DURATION
-	_set_planar_velocity(-_light_attack_forward * LIGHT_ATTACK_RECOIL_SPEED)
+func _finish_light_attack() -> void:
+	_light_attack_state = LightAttackState.READY
+	_light_attack_time_remaining = 0.0
+	_light_attack_cooldown_remaining = LIGHT_ATTACK_COOLDOWN_DURATION
+	_light_attack_shape_cast.enabled = false
+	_log_light_attack_event("attack_finished")
 
 
-func _set_planar_velocity(planar_velocity: Vector3) -> void:
+func _update_light_attack_hit_grace(delta: float) -> void:
+	if _light_attack_hit_grace_remaining <= 0.0:
+		return
+	_light_attack_hit_grace_remaining = maxf(
+		_light_attack_hit_grace_remaining - delta,
+		0.0
+	)
+	_log_light_attack_event("hit_grace_active_tick")
+	if _light_attack_hit_grace_remaining <= 0.0:
+		_log_light_attack_event("hit_grace_expired")
+
+
+func _handle_light_attack_collision(target: Node3D, detection_source: String) -> void:
+	if _light_attack_state == LightAttackState.CHARGING:
+		_finish_light_attack_charge(target, detection_source)
+		return
+	if _light_attack_hit_grace_remaining <= 0.0:
+		_log_light_attack_event("collision_ignored", {
+			"detection_source": detection_source,
+			"reason": "no_active_attack_or_grace",
+			"target": _light_attack_debug_node_name(target),
+		})
+		return
+
+	_light_attack_forward = global_transform.basis.z.slide(Vector3.UP).normalized()
+	_log_light_attack_event("hit_grace_collision", {
+		"detection_source": detection_source,
+		"target": _light_attack_debug_node_name(target),
+	})
+	_light_attack_hit_grace_remaining = 0.0
+	_apply_light_attack_hit(target)
+	_apply_light_attack_self_recoil()
+	_emit_light_attack_impact_particles(target)
+	_log_light_attack_event("hit_grace_consumed")
+
+
+func _apply_light_attack_force(delta: float) -> void:
+	_light_attack_forward = global_transform.basis.z.slide(Vector3.UP).normalized()
+	if _light_attack_forward.length_squared() <= 0.0001:
+		_log_light_attack_event("attack_force_skipped", {"reason": "invalid_forward"})
+		return
+	var forward_speed := linear_velocity.dot(_light_attack_forward)
+	var speed_gap := maxf(LIGHT_ATTACK_CHARGE_SPEED - forward_speed, 0.0)
+	if speed_gap <= 0.0:
+		_log_light_attack_event("attack_force_skipped", {
+			"reason": "speed_cap_reached",
+			"forward_speed": forward_speed,
+		})
+		return
+	var force_to_speed_cap := speed_gap * mass / maxf(delta, 0.0001)
+	var attack_force := _light_attack_forward * minf(LIGHT_ATTACK_FORCE, force_to_speed_cap)
+	_log_light_attack_event("attack_force_applied", {
+		"forward_speed": forward_speed,
+		"speed_gap": speed_gap,
+		"force": attack_force,
+	})
+	apply_central_force(attack_force)
+
+
+func _remove_light_attack_speed_boost() -> void:
 	var vertical_velocity := Vector3.UP * linear_velocity.dot(Vector3.UP)
-	linear_velocity = planar_velocity + vertical_velocity
+	var planar_velocity := linear_velocity.slide(Vector3.UP)
+	var planar_speed := planar_velocity.length()
+	if planar_speed <= _light_attack_start_planar_speed:
+		_log_light_attack_event("dash_speed_cap_not_needed", {
+			"start_planar_speed": _light_attack_start_planar_speed,
+			"current_planar_speed": planar_speed,
+		})
+		return
+
+	var capped_planar_velocity := (
+		planar_velocity.normalized() * _light_attack_start_planar_speed
+	)
+	_log_light_attack_event("dash_speed_boost_removed", {
+		"start_planar_speed": _light_attack_start_planar_speed,
+		"current_planar_speed": planar_speed,
+		"velocity_before": linear_velocity,
+		"velocity_after": capped_planar_velocity + vertical_velocity,
+	})
+	linear_velocity = capped_planar_velocity + vertical_velocity
+
+
+func _apply_light_attack_self_recoil() -> void:
+	var forward_speed := linear_velocity.dot(_light_attack_forward)
+	var recoil_velocity_change := maxf(
+		forward_speed + LIGHT_ATTACK_SELF_RECOIL_SPEED,
+		0.0
+	)
+	var recoil_impulse := -_light_attack_forward * recoil_velocity_change * mass
+	_log_light_attack_event("self_recoil_applied", {
+		"forward_speed_before": forward_speed,
+		"velocity_before": linear_velocity,
+		"impulse": recoil_impulse,
+	})
+	apply_central_impulse(recoil_impulse)
+
+
+func _get_swept_light_attack_targets() -> Array[String]:
+	var targets: Array[String] = []
+	if not _light_attack_shape_cast.enabled:
+		return targets
+	_light_attack_shape_cast.force_shapecast_update()
+	for collision_index in _light_attack_shape_cast.get_collision_count():
+		var collider := _light_attack_shape_cast.get_collider(collision_index) as Node3D
+		if collider != null and collider != self:
+			targets.append(_light_attack_debug_node_name(collider))
+	return targets
+
+
+func _setup_light_attack_debug_log() -> void:
+	if not LIGHT_ATTACK_DEBUG_LOGS:
+		return
+	_light_attack_debug_path = "user://light_attack_debug_%d_%d.log" % [
+		OS.get_process_id(),
+		get_instance_id(),
+	]
+	_light_attack_debug_file = FileAccess.open(
+		_light_attack_debug_path,
+		FileAccess.WRITE
+	)
+	if _light_attack_debug_file == null:
+		push_warning("Unable to open light attack debug log: %s" % _light_attack_debug_path)
+		return
+	_log_light_attack_event("debug_log_opened", {
+		"path": ProjectSettings.globalize_path(_light_attack_debug_path),
+	})
+
+
+func _log_light_attack_event(event: String, details: Dictionary = {}) -> void:
+	if not LIGHT_ATTACK_DEBUG_LOGS:
+		return
+	var body_forward := global_transform.basis.z.slide(Vector3.UP).normalized()
+	var area_targets: Array[String] = []
+	for body: Node3D in _light_attack_hitbox.get_overlapping_bodies():
+		if body != self:
+			area_targets.append(_light_attack_debug_node_name(body))
+	var data := {
+		"event": event,
+		"state": _light_attack_state_name(),
+		"attack_time_remaining": _light_attack_time_remaining,
+		"cooldown_remaining": _light_attack_cooldown_remaining,
+		"hit_grace_remaining": _light_attack_hit_grace_remaining,
+		"start_planar_speed": _light_attack_start_planar_speed,
+		"grounded_wheels": _grounded_wheel_count,
+		"position": global_position,
+		"velocity": linear_velocity,
+		"angular_velocity": angular_velocity,
+		"body_forward": body_forward,
+		"attack_forward": _light_attack_forward,
+		"forward_speed": linear_velocity.dot(body_forward),
+		"throttle_input": Input.get_axis("backward", "forward"),
+		"turn_input": Input.get_axis("turn_right", "turn_left"),
+		"area_targets": area_targets,
+		"swept_targets_diagnostic_only": _get_swept_light_attack_targets(),
+	}
+	for key: Variant in details:
+		data[key] = details[key]
+	var line := "[LightAttack] frame=%d ticks_ms=%d %s" % [
+		Engine.get_physics_frames(),
+		Time.get_ticks_msec(),
+		str(data),
+	]
+	print(line)
+	if _light_attack_debug_file != null:
+		_light_attack_debug_file.store_line(line)
+		_light_attack_debug_file.flush()
+
+
+func _light_attack_state_name() -> String:
+	match _light_attack_state:
+		LightAttackState.READY:
+			return "READY"
+		LightAttackState.CHARGING:
+			return "CHARGING"
+	return "UNKNOWN_%s" % _light_attack_state
+
+
+func _light_attack_debug_node_name(node: Node) -> String:
+	if node == null:
+		return "<null>"
+	var description := "%s:%s#%d" % [
+		str(node.get_path()),
+		node.get_class(),
+		node.get_instance_id(),
+	]
+	if node is Node3D:
+		description += "@%s" % (node as Node3D).global_position
+	if node is CollisionObject3D:
+		var collision_object := node as CollisionObject3D
+		description += "[layer=%d mask=%d]" % [
+			collision_object.collision_layer,
+			collision_object.collision_mask,
+		]
+	return description
 
 
 func _set_light_attack_charge_particles(is_emitting: bool) -> void:
+	_log_light_attack_event("charge_particles_changed", {"emitting": is_emitting})
 	for particles: GPUParticles3D in [
 		_light_attack_charge_streaks_left,
 		_light_attack_charge_streaks_right,
@@ -360,6 +584,11 @@ func _emit_light_attack_impact_particles(target: Node3D) -> void:
 	)
 	_light_attack_impact_sparks.emitting = true
 	_light_attack_impact_sparks.restart()
+	_log_light_attack_event("impact_sparks_emitted", {
+		"target": _light_attack_debug_node_name(target),
+		"impact_point": impact_point,
+		"impact_normal": impact_normal,
+	})
 
 
 func _get_collision_bounds(body: Node3D) -> Dictionary:
@@ -436,15 +665,35 @@ func _apply_light_attack_hit(target: Node3D) -> void:
 		damage_target = damage_target.get_parent()
 	if damage_target != null:
 		damage_target.call("take_damage", LIGHT_ATTACK_DAMAGE, self)
+	var target_impulse := Vector3.ZERO
 	if target is RigidBody3D:
 		var target_body := target as RigidBody3D
-		target_body.apply_central_impulse(_light_attack_forward * LIGHT_ATTACK_TARGET_IMPULSE)
+		target_impulse = _light_attack_forward * LIGHT_ATTACK_TARGET_IMPULSE
+		target_body.apply_central_impulse(target_impulse)
+	_log_light_attack_event("attack_hit_applied", {
+		"target": _light_attack_debug_node_name(target),
+		"damage_target": _light_attack_debug_node_name(damage_target),
+		"damage": LIGHT_ATTACK_DAMAGE,
+		"target_impulse": target_impulse,
+	})
 	light_attack_hit.emit(target, LIGHT_ATTACK_DAMAGE)
 
 
 func _on_light_attack_hitbox_body_entered(body: Node3D) -> void:
+	_log_light_attack_event("area_body_entered", {
+		"target": _light_attack_debug_node_name(body),
+	})
 	if body != self:
-		_finish_light_attack_charge(body)
+		_handle_light_attack_collision(body, "area_body_entered")
+
+
+func _on_light_attack_body_contact(body: Node) -> void:
+	_log_light_attack_event("rigid_body_contact", {
+		"target": _light_attack_debug_node_name(body),
+	})
+	if body == self:
+		return
+	_handle_light_attack_collision(body as Node3D, "rigid_body_contact")
 
 
 func _read_driver_input(delta: float) -> void:
@@ -916,6 +1165,25 @@ func _sync_healthbar() -> void:
 	if healthbar == null:
 		return
 	healthbar.value = clampf(float(hitpoints), healthbar.min_value, healthbar.max_value)
+
+
+func _sync_light_attack_cooldown_bar() -> void:
+	if light_attack_cooldown_bar == null:
+		return
+	var ready_amount := 1.0
+	if _light_attack_state != LightAttackState.READY:
+		ready_amount = 0.0
+	elif _light_attack_cooldown_remaining > 0.0:
+		ready_amount = 1.0 - clampf(
+			_light_attack_cooldown_remaining / LIGHT_ATTACK_COOLDOWN_DURATION,
+			0.0,
+			1.0
+		)
+	light_attack_cooldown_bar.value = lerpf(
+		light_attack_cooldown_bar.min_value,
+		light_attack_cooldown_bar.max_value,
+		ready_amount
+	)
 
 
 func take_damage(amount: int, _source: Node = null) -> void:
