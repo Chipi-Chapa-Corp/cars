@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://bbfi5lr4o61o5" path="res://scenes/world/script.gd" id="1_rmx8x"]
 [ext_resource type="PackedScene" uid="uid://dgr33nmap0001" path="res://scenes/maps/map/scene.tscn" id="2_bp46t"]
+[ext_resource type="PackedScene" uid="uid://imkjxaxhglnx" path="res://scenes/box/scene.tscn" id="3_0rkgh"]
 
 [node name="World" type="Node3D" unique_id=1348487105 node_paths=PackedStringArray("_player_container", "_pickup_container", "_pickup_timer")]
 script = ExtResource("1_rmx8x")
@@ -29,5 +30,32 @@ directional_shadow_blend_splits = true
 wait_time = 3.0
 
 [node name="Map" parent="." unique_id=351248380 instance=ExtResource("2_bp46t")]
+
+[node name="Box" parent="." unique_id=977246672 instance=ExtResource("3_0rkgh")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.4789715, 0, 10.575605)
+
+[node name="Box2" parent="." unique_id=2133576567 instance=ExtResource("3_0rkgh")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.5417, 0, 10.595398)
+
+[node name="Box3" parent="." unique_id=562166538 instance=ExtResource("3_0rkgh")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.884035, 0, 10.595398)
+
+[node name="Box4" parent="." unique_id=622451080 instance=ExtResource("3_0rkgh")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.1395473, 0, 10.595398)
+
+[node name="Box5" parent="." unique_id=1597733592 instance=ExtResource("3_0rkgh")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.1907616, 0, 10.595398)
+
+[node name="Box6" parent="." unique_id=382478110 instance=ExtResource("3_0rkgh")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.432909, 0, 10.595398)
+
+[node name="Box7" parent="." unique_id=2098119104 instance=ExtResource("3_0rkgh")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.597746, 0, 15.252707)
+
+[node name="Box8" parent="." unique_id=2013776264 instance=ExtResource("3_0rkgh")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.597746, 0, 19.605062)
+
+[node name="Box9" parent="." unique_id=186941336 instance=ExtResource("3_0rkgh")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.634134, 0, 19.605062)
 
 [connection signal="timeout" from="Pickups/Timer" to="." method="_on_spawn_pickup"]

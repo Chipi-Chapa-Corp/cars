@@ -1,20 +1,21 @@
 extends RigidBody3D
 
-const MAX_FORWARD_SPEED := 8.0
-const MAX_REVERSE_SPEED := 7.0
-const ENGINE_FORCE := 280.0
+const MAX_FORWARD_SPEED := 7.0
+const MAX_REVERSE_SPEED := 6.0
+const ENGINE_FORCE := 210.0
 const REVERSE_ENGINE_MULTIPLIER := 0.7
 const ENGINE_TAPER_SPEED := 1.0
-const THROTTLE_RESPONSE := 4.0
+const THROTTLE_RESPONSE := 2.5
 const THROTTLE_DEADZONE := 0.05
 
 const LOW_SPEED_STEERING_ANGLE := 0.52
 const HIGH_SPEED_STEERING_ANGLE := 0.11
+const HANDBRAKE_STEERING_MULTIPLIER := 1.8
 const STEERING_RESPONSE := 7.0
 const WHEEL_STEER_INTERPOLATION_SPEED := 10.0
 
 const SERVICE_BRAKE_FORCE := 360.0
-const COAST_BRAKE_FORCE := 120.0
+const COAST_BRAKE_FORCE := 80.0
 const HANDBRAKE_FORCE := 240.0
 const HANDBRAKE_ENGAGE_SPEED := 18.0
 const HANDBRAKE_RELEASE_SPEED := 2.5
@@ -47,6 +48,16 @@ const GROUNDED_PITCH_ROLL_DAMPING := 10.0
 const GROUNDED_YAW_DAMPING := 8.0
 const AIRBORNE_PITCH_ROLL_DAMPING := 3.0
 const AIRBORNE_YAW_DAMPING := 1.2
+
+const SKID_MARK_WIDTH := 0.055
+const SKID_MARK_SURFACE_OFFSET := 0.004
+const SKID_MARK_MIN_POINT_DISTANCE := 0.025
+const SKID_MARK_MAX_SEGMENT_LENGTH := 0.45
+const SKID_MARK_MIN_SPEED := 2.0
+const SKID_MARK_MIN_LATERAL_SPEED := 0.8
+const SKID_MARK_MIN_SLIP_ANGLE := 0.14
+const SKID_MARK_MIN_HANDBRAKE := 0.45
+const MAX_SKID_MARK_SEGMENTS := 1000
 
 const DRIVE_SHARE := {
 	"wheel-left-front": 0.3,
@@ -100,8 +111,11 @@ var _wheel_visual_height_offset: Dictionary = {}
 var _wheel_spin: Dictionary = {}
 var _wheel_suspension_length: Dictionary = {}
 var _wheel_forward_speed: Dictionary = {}
+var _wheel_lateral_speed: Dictionary = {}
+var _wheel_slip_angle: Dictionary = {}
 var _wheel_compression: Dictionary = {}
 var _wheel_contact_point: Dictionary = {}
+var _wheel_contact_normal: Dictionary = {}
 var _visual_steering := 0.0
 var _steering_angle := 0.0
 var _smoothed_throttle := 0.0
@@ -113,6 +127,10 @@ var _grounded_wheel_count := 0
 var _powerup_scene_instance: Node
 var _camera_local_transform := Transform3D.IDENTITY
 var _camera_yaw_basis := Basis.IDENTITY
+var _skid_mark_mesh: ImmediateMesh
+var _skid_mark_material: StandardMaterial3D
+var _skid_mark_segments: Array[Dictionary] = []
+var _last_skid_contact: Dictionary = {}
 
 @onready var _wheel_rays: Dictionary = {
 	"wheel-left-front": $FrontLeft as RayCast3D,
@@ -137,6 +155,7 @@ func _ready() -> void:
 		hud_sprite_3d.texture = hud_viewport.get_texture()
 	car_type = CAR_TYPES.pick_random()
 	_cache_wheel_visual_offsets()
+	_setup_skid_marks()
 	_camera_local_transform = camera.transform
 	camera.top_level = true
 	_update_camera_transform()
@@ -152,6 +171,7 @@ func _process(_delta: float) -> void:
 func _physics_process(delta: float) -> void:
 	_read_driver_input(delta)
 	_apply_wheel_forces(delta)
+	_update_skid_marks()
 	_apply_anti_roll_forces()
 	_apply_body_drag_and_stability()
 
@@ -169,6 +189,7 @@ func _physics_process(delta: float) -> void:
 func _read_driver_input(delta: float) -> void:
 	var turn_input := Input.get_axis("turn_right", "turn_left")
 	var raw_throttle := Input.get_axis("backward", "forward")
+	var handbrake_pressed := Input.is_action_pressed("handbrake")
 	var forward_speed := linear_velocity.dot(global_transform.basis.z.normalized())
 	var planar_speed := linear_velocity.slide(Vector3.UP).length()
 	var speed_ratio := clampf(planar_speed / MAX_FORWARD_SPEED, 0.0, 1.0)
@@ -177,6 +198,11 @@ func _read_driver_input(delta: float) -> void:
 		HIGH_SPEED_STEERING_ANGLE,
 		speed_ratio
 	)
+	if handbrake_pressed:
+		steering_limit = minf(
+			steering_limit * HANDBRAKE_STEERING_MULTIPLIER,
+			LOW_SPEED_STEERING_ANGLE
+		)
 	_steering_angle = move_toward(
 		_steering_angle,
 		turn_input * steering_limit,
@@ -208,7 +234,7 @@ func _read_driver_input(delta: float) -> void:
 	else:
 		_coast_brake_input = 1.0
 
-	var handbrake_target := 1.0 if Input.is_action_pressed("handbrake") else 0.0
+	var handbrake_target := 1.0 if handbrake_pressed else 0.0
 	var handbrake_speed := (
 		HANDBRAKE_ENGAGE_SPEED
 		if handbrake_target > _handbrake_amount
@@ -225,6 +251,9 @@ func _apply_wheel_forces(delta: float) -> void:
 	_grounded_wheel_count = 0
 	_wheel_compression.clear()
 	_wheel_contact_point.clear()
+	_wheel_contact_normal.clear()
+	_wheel_lateral_speed.clear()
+	_wheel_slip_angle.clear()
 	var body_up := global_transform.basis.y.normalized()
 	var body_forward := global_transform.basis.z.normalized()
 	var body_forward_speed := linear_velocity.dot(body_forward)
@@ -266,6 +295,7 @@ func _apply_wheel_forces(delta: float) -> void:
 		_wheel_suspension_length[wheel_group] = suspension_length
 		_wheel_compression[wheel_group] = compression
 		_wheel_contact_point[wheel_group] = contact_point
+		_wheel_contact_normal[wheel_group] = contact_normal
 
 		var wheel_forward := body_forward.slide(contact_normal).normalized()
 		if wheel_group in FRONT_WHEELS:
@@ -275,6 +305,7 @@ func _apply_wheel_forces(delta: float) -> void:
 		var longitudinal_speed := contact_velocity.dot(wheel_forward)
 		var lateral_speed := contact_velocity.dot(wheel_side)
 		_wheel_forward_speed[wheel_group] = longitudinal_speed
+		_wheel_lateral_speed[wheel_group] = lateral_speed
 
 		var drive_force := total_drive_force * float(DRIVE_SHARE[wheel_group])
 		var brake_force := _wheel_brake_force(wheel_group)
@@ -285,6 +316,7 @@ func _apply_wheel_forces(delta: float) -> void:
 			desired_longitudinal_force -= signf(longitudinal_speed) * brake_force
 
 		var slip_angle := atan2(absf(lateral_speed), maxf(absf(longitudinal_speed), 0.5))
+		_wheel_slip_angle[wheel_group] = slip_angle
 		var slide_amount := smoothstep(
 			TIRE_GRIP_PEAK_SLIP_ANGLE,
 			TIRE_GRIP_FULL_SLIDE_ANGLE,
@@ -419,6 +451,168 @@ func _apply_body_drag_and_stability() -> void:
 	else:
 		damping_torque -= body_up * angular_velocity.dot(body_up) * AIRBORNE_YAW_DAMPING
 	apply_torque(damping_torque)
+
+
+func _setup_skid_marks() -> void:
+	_skid_mark_mesh = ImmediateMesh.new()
+	_skid_mark_material = StandardMaterial3D.new()
+	_skid_mark_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_skid_mark_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_skid_mark_material.vertex_color_use_as_albedo = true
+	_skid_mark_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_skid_mark_material.albedo_color = Color.WHITE
+
+	var skid_marks := MeshInstance3D.new()
+	skid_marks.name = "SkidMarks"
+	skid_marks.mesh = _skid_mark_mesh
+	skid_marks.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(skid_marks)
+	skid_marks.top_level = true
+	skid_marks.global_transform = Transform3D.IDENTITY
+
+
+func _update_skid_marks() -> void:
+	var added_segment := false
+	for wheel_group: String in REAR_WHEELS:
+		var point_value: Variant = _wheel_contact_point.get(wheel_group, null)
+		var normal_value: Variant = _wheel_contact_normal.get(wheel_group, null)
+		if point_value == null or normal_value == null:
+			_last_skid_contact.erase(wheel_group)
+			continue
+
+		var longitudinal_speed := absf(float(_wheel_forward_speed.get(wheel_group, 0.0)))
+		var lateral_speed := absf(float(_wheel_lateral_speed.get(wheel_group, 0.0)))
+		var contact_speed := Vector2(longitudinal_speed, lateral_speed).length()
+		var slip_angle := float(_wheel_slip_angle.get(wheel_group, 0.0))
+		var is_laterally_slipping := (
+			lateral_speed >= SKID_MARK_MIN_LATERAL_SPEED
+			and slip_angle >= SKID_MARK_MIN_SLIP_ANGLE
+		)
+		var is_rear_locked := (
+			_handbrake_amount >= SKID_MARK_MIN_HANDBRAKE
+			and longitudinal_speed >= SKID_MARK_MIN_SPEED
+		)
+		if contact_speed < SKID_MARK_MIN_SPEED or not (is_laterally_slipping or is_rear_locked):
+			_last_skid_contact.erase(wheel_group)
+			continue
+
+		var contact_point: Vector3 = point_value
+		var contact_normal: Vector3 = normal_value
+		var mark_point := contact_point + contact_normal * SKID_MARK_SURFACE_OFFSET
+		var lateral_intensity := clampf(
+			(lateral_speed - SKID_MARK_MIN_LATERAL_SPEED) / 1.25,
+			0.0,
+			1.0
+		)
+		var lock_intensity := _handbrake_amount if is_rear_locked else 0.0
+		var intensity := maxf(lateral_intensity, lock_intensity)
+
+		var previous_value: Variant = _last_skid_contact.get(wheel_group, null)
+		if previous_value != null:
+			var previous_contact: Dictionary = previous_value
+			var previous_point: Vector3 = previous_contact["point"]
+			var segment_length := previous_point.distance_to(mark_point)
+			if (
+				segment_length >= SKID_MARK_MIN_POINT_DISTANCE
+				and segment_length <= SKID_MARK_MAX_SEGMENT_LENGTH
+			):
+				var previous_normal: Vector3 = previous_contact["normal"]
+				_append_skid_mark_segment(
+					previous_point,
+					mark_point,
+					(previous_normal + contact_normal).normalized(),
+					intensity
+				)
+				added_segment = true
+		_last_skid_contact[wheel_group] = {
+			"point": mark_point,
+			"normal": contact_normal,
+		}
+
+	if added_segment:
+		_rebuild_skid_mark_mesh()
+
+
+func _append_skid_mark_segment(
+	start: Vector3,
+	end: Vector3,
+	normal: Vector3,
+	intensity: float
+) -> void:
+	_skid_mark_segments.append({
+		"start": start,
+		"end": end,
+		"normal": normal,
+		"intensity": intensity,
+	})
+	while _skid_mark_segments.size() > MAX_SKID_MARK_SEGMENTS:
+		_skid_mark_segments.pop_front()
+
+
+func _rebuild_skid_mark_mesh() -> void:
+	_skid_mark_mesh.clear_surfaces()
+	if _skid_mark_segments.is_empty():
+		return
+
+	_skid_mark_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES, _skid_mark_material)
+	for segment: Dictionary in _skid_mark_segments:
+		var start: Vector3 = segment["start"]
+		var end: Vector3 = segment["end"]
+		var normal: Vector3 = segment["normal"]
+		var direction := (end - start).slide(normal).normalized()
+		if direction.length_squared() <= 0.0001:
+			continue
+		var side := normal.cross(direction).normalized() * SKID_MARK_WIDTH * 0.5
+		var intensity := float(segment["intensity"])
+		var color := Color(0.018, 0.018, 0.018, lerpf(0.4, 0.78, intensity))
+		_add_skid_mark_triangle(
+			start - side,
+			end - side,
+			end + side,
+			normal,
+			color,
+			Vector2(0.0, 0.0),
+			Vector2(0.0, 1.0),
+			Vector2(1.0, 1.0)
+		)
+		_add_skid_mark_triangle(
+			start - side,
+			end + side,
+			start + side,
+			normal,
+			color,
+			Vector2(0.0, 0.0),
+			Vector2(1.0, 1.0),
+			Vector2(1.0, 0.0)
+		)
+	_skid_mark_mesh.surface_end()
+
+
+func _add_skid_mark_triangle(
+	a: Vector3,
+	b: Vector3,
+	c: Vector3,
+	normal: Vector3,
+	color: Color,
+	uv_a: Vector2,
+	uv_b: Vector2,
+	uv_c: Vector2
+) -> void:
+	_add_skid_mark_vertex(a, normal, color, uv_a)
+	_add_skid_mark_vertex(b, normal, color, uv_b)
+	_add_skid_mark_vertex(c, normal, color, uv_c)
+
+
+func _add_skid_mark_vertex(
+	position: Vector3,
+	normal: Vector3,
+	color: Color,
+	uv: Vector2
+) -> void:
+	_skid_mark_mesh.surface_set_normal(normal)
+	_skid_mark_mesh.surface_set_color(color)
+	_skid_mark_mesh.surface_set_uv(uv)
+	_skid_mark_mesh.surface_add_vertex(position)
 
 
 func _velocity_at_world_point(point: Vector3) -> Vector3:
