@@ -1,0 +1,95 @@
+[gd_scene format=3 uid="uid://bphwvfeasdnp8"]
+
+[ext_resource type="ArrayMesh" uid="uid://bnbyboge74b0y" path="res://assets/map/road_tsplit.obj" id="1_p1d4u"]
+[ext_resource type="ArrayMesh" uid="uid://dys32b3fwoqu4" path="res://assets/map/base.obj" id="2_ttpkd"]
+[ext_resource type="ArrayMesh" uid="uid://8h8km6d87k24" path="res://assets/map/road_corner.obj" id="3_pkeh6"]
+[ext_resource type="ArrayMesh" uid="uid://b0jckrf5qxu8u" path="res://assets/map/road_corner_curved.obj" id="4_yh3yt"]
+[ext_resource type="ArrayMesh" uid="uid://c7cg1ur1o3hj1" path="res://assets/map/road_junction.obj" id="5_ttpkd"]
+[ext_resource type="ArrayMesh" uid="uid://btogw2lrvq6qq" path="res://assets/map/road_straight.obj" id="6_yh3yt"]
+[ext_resource type="ArrayMesh" uid="uid://bt585t57i4c0u" path="res://assets/map/road_straight_crossing.obj" id="7_1tdwh"]
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_yh3yt"]
+points = PackedVector3Array(-1, 0, -1, -1, 0, 1, -1, 0.1, -1, 1, 0, -1, -1, 0.1, 1, 1, 0, 1, 1, 0.1, -1, 1, 0.1, 1)
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_1tdwh"]
+points = PackedVector3Array(-1, 0, -1, -1, 0, 1, -1, 0.1, -1, 1, 0, -1, -1, 0.1, 1, 1, 0, 1, 1, 0.1, -1, 1, 0.1, 1)
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_47hn2"]
+points = PackedVector3Array(-1, 0, -1, -1, 0, 1, -1, 0.1, -1, 1, 0, -1, -1, 0.1, 1, 1, 0, 1, 1, 0.1, -1, 1, 0.1, 1)
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_kvo34"]
+points = PackedVector3Array(-1, 0, -1, -1, 0, 1, -1, 0.1, -1, 1, 0, -1, -1, 0.1, 1, 1, 0, 1, 1, 0.1, -1, 1, 0.1, 1)
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_u56ww"]
+points = PackedVector3Array(-1, 0, -1, -1, 0, 1, -1, 0.1, -1, 1, 0, -1, -1, 0.1, 1, 1, 0, 1, 1, 0.1, -1, 1, 0.1, 1)
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_gjnqp"]
+points = PackedVector3Array(-1, 0, -1, -1, 0, 1, -1, 0.1, -1, 1, 0, -1, -1, 0.1, 1, 1, 0, 1, 1, 0.1, -1, 1, 0.1, 1)
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_eojha"]
+points = PackedVector3Array(-1, 0, -1, -1, 0, 1, -1, 0.1, -1, 1, 0, -1, -1, 0.1, 1, 1, 0, 1, 1, 0.1, -1, 1, 0.1, 1)
+
+[node name="Map Tiles" type="Node3D" unique_id=1728106926]
+
+[node name="RoadTsplit" type="MeshInstance3D" parent="." unique_id=2122709278]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.950958, 0, 0)
+mesh = ExtResource("1_p1d4u")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="RoadTsplit" unique_id=1020817092]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RoadTsplit/StaticBody3D" unique_id=1299382790]
+shape = SubResource("ConvexPolygonShape3D_yh3yt")
+
+[node name="Base" type="MeshInstance3D" parent="." unique_id=528184736]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.36902213, 0, 0)
+mesh = ExtResource("2_ttpkd")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Base" unique_id=1932110020]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Base/StaticBody3D" unique_id=1370006024]
+shape = SubResource("ConvexPolygonShape3D_1tdwh")
+
+[node name="RoadCorner" type="MeshInstance3D" parent="." unique_id=19227960]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.9885259, 0, 0)
+mesh = ExtResource("3_pkeh6")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="RoadCorner" unique_id=1357854042]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RoadCorner/StaticBody3D" unique_id=1441749820]
+shape = SubResource("ConvexPolygonShape3D_47hn2")
+
+[node name="RoadCornerCurved" type="MeshInstance3D" parent="." unique_id=2135773697]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.60463, 0, 0)
+mesh = ExtResource("4_yh3yt")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="RoadCornerCurved" unique_id=1996514420]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RoadCornerCurved/StaticBody3D" unique_id=1962241507]
+shape = SubResource("ConvexPolygonShape3D_kvo34")
+
+[node name="RoadJunction" type="MeshInstance3D" parent="." unique_id=766503838]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.945954, 0, 0)
+mesh = ExtResource("5_ttpkd")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="RoadJunction" unique_id=1881206347]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RoadJunction/StaticBody3D" unique_id=1004572942]
+shape = SubResource("ConvexPolygonShape3D_u56ww")
+
+[node name="RoadStraight" type="MeshInstance3D" parent="." unique_id=1176708813]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.167119, 0, 0)
+mesh = ExtResource("6_yh3yt")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="RoadStraight" unique_id=269726048]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RoadStraight/StaticBody3D" unique_id=1958366780]
+shape = SubResource("ConvexPolygonShape3D_gjnqp")
+
+[node name="RoadStraightCrossing" type="MeshInstance3D" parent="." unique_id=1392994295]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2.9950433)
+mesh = ExtResource("7_1tdwh")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="RoadStraightCrossing" unique_id=1209697485]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RoadStraightCrossing/StaticBody3D" unique_id=466166997]
+shape = SubResource("ConvexPolygonShape3D_eojha")

@@ -10,7 +10,7 @@ config_version=5
 
 [application]
 
-config/name="godot-multiplayer-template"
+config/name="cars"
 run/main_scene="uid://7diwfasegod"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
@@ -18,7 +18,6 @@ config/icon="res://icon.svg"
 [autoload]
 
 SceneManager="*uid://bg5v5woh4j8dp"
-NetworkManager="*uid://dypv2dgyr3y2l"
 
 [global_group]
 
@@ -54,8 +53,13 @@ turn_right={
 }
 activate={
 "deadzone": 0.2,
-"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":32,"key_label":0,"unicode":32,"location":0,"echo":false,"script":null)
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":69,"key_label":0,"unicode":101,"location":0,"echo":false,"script":null)
 , Object(InputEventMouseButton,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"button_mask":0,"position":Vector2(0, 0),"global_position":Vector2(0, 0),"factor":1.0,"button_index":1,"canceled":false,"pressed":false,"double_click":false,"script":null)
+]
+}
+handbrake={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":32,"key_label":0,"unicode":32,"location":0,"echo":false,"script":null)
 ]
 }
 
@@ -64,13 +68,9 @@ activate={
 3d/run_on_separate_thread=true
 3d/physics_engine="Jolt Physics"
 jolt_physics_3d/simulation/penetration_slop=0.005
-jolt_physics_3d/simulation/baumgarte_stabilization_factor=0.25
+jolt_physics_3d/simulation/speculative_contact_distance=0.001
 
 [rendering]
 
 rendering_device/driver.windows="d3d12"
 lights_and_shadows/directional_shadow/soft_shadow_filter_quality=4
-
-[steam]
-
-initialization/app_id=480
